@@ -11,7 +11,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - db_data:/var/lib/postgresql
     healthcheck:
@@ -26,7 +26,7 @@ services:
     volumes:
       - ./FastGame:/app
     ports:
-      - "8000:8000"
+      - "8001:8000"
     env_file:
       - .env
     environment:
@@ -34,6 +34,27 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  playwright:
+    build:
+      dockerfile: ./Scrapers/Dockerfile.playwright
+    init: true
+    ipc: host
+    ports:
+      - "3001:3000"
+
+  # scrapers:
+  #   build: ./Scrapers
+  #   volumes:
+  #     - ./Scrapers:/app
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - PLAYWRIGHT_WS_ENDPOINT=ws://playwright:3000/
+  #     - WEB_URL=http://web:8000
+  #   depends_on:
+  #     - postgres
+  #     - playwright
 
 volumes:
   db_data:

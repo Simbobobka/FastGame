@@ -1,0 +1,8 @@
+FROM python:3.12-bookworm
+
+WORKDIR /app
+
+RUN pip install playwright==1.56.0 && \
+    playwright install --with-deps chromium
+
+CMD ["python", "-m", "playwright", "run-server", "--port", "3000", "--host", "0.0.0.0"]
