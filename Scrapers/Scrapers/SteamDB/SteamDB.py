@@ -1,13 +1,17 @@
 from Scrapers.Scrapers.ScraperPlayWrightClient import ScraperClient
-from Scrapers.AbstractScraper import AbstractScraper
+from Scrapers.Scrapers.AbstractScraper import AbstractScraper
 
 
 class SteamDBScraper(AbstractScraper):
     BASE_URL = "https://steamdb.info/"
     
     def __init__(self):
-        super().__init__(ScraperClient())
+        self.client = ScraperClient()
     
+    @property
+    def browser(self):
+        return self.client.browser
+
     async def scrape(self):
         await self.client.initiate()
 
