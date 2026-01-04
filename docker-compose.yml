@@ -35,7 +35,8 @@ services:
 
   playwright:
     build:
-      dockerfile: ./Scrapers/Dockerfile.playwright
+      context: ./Scrapers
+      dockerfile: Dockerfile.playwright
     init: true
     ipc: host
     ports:
