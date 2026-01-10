@@ -1,0 +1,75 @@
+name: Check Linear Ticket ID
+permissions:
+  pull-requests: read
+  contents: read
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  check-ticket-id:
+    runs-on: ubuntu-latest
+    name: Verify Linear Ticket ID
+    
+    steps:
+      - name: Check for Linear Ticket ID
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Linear ticket ID pattern: PREFIX-NUMBER (e.g., FG-23)
+            const ticketPattern = /\b[A-Z]{1,10}-\d{1,10}\b/;
+            
+            const prTitle = context.payload.pull_request.title;
+            const branchName = context.payload.pull_request.head.ref;
+            
+            console.log(`PR Title: ${prTitle}`);
+            console.log(`Branch Name: ${branchName}`);
+            
+            // Check PR title first
+            const titleMatch = ticketPattern.test(prTitle);
+            if (titleMatch) {
+              const ticketId = prTitle.match(ticketPattern)[0];
+              console.log(`✅ Found Linear ticket ID in PR title: ${ticketId}`);
+              return;
+            }
+            
+            // Check branch name as fallback
+            const branchMatch = ticketPattern.test(branchName);
+            if (branchMatch) {
+              const ticketId = branchName.match(ticketPattern)[0];
+              console.log(`✅ Found Linear ticket ID in branch name: ${ticketId}`);
+              return;
+            }
+            
+            // Check commit messages as final fallback
+            console.log('Checking commit messages...');
+            try {
+              const commits = await github.rest.pulls.listCommits({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number,
+              });
+              
+              console.log(`Found ${commits.data.length} commits to check`);
+              
+              for (const commit of commits.data) {
+                const commitMessage = commit.commit.message;
+                console.log(`Checking commit: ${commit.sha.substring(0, 7)} - ${commitMessage.split('\n')[0]}`);
+                
+                if (ticketPattern.test(commitMessage)) {
+                  const ticketId = commitMessage.match(ticketPattern)[0];
+                  console.log(`✅ Found Linear ticket ID in commit message: ${ticketId}`);
+                  return;
+                }
+              }
+            } catch (error) {
+              console.log(`⚠️ Error fetching commits: ${error.message}`);
+            }
+            
+            // If no ticket ID found in any location
+            console.log(`❌ No Linear ticket ID found in PR title, branch name, or commit messages`);
+            console.log(`Expected format: PREFIX-NUMBER (e.g., FG-23)`);
+            console.log(`Please include a Linear ticket ID in your PR title, branch name, or commit messages.`);
+            
+            core.setFailed('Linear ticket ID is required. Please include a ticket ID in the format PREFIX-NUMBER (e.g., FG-23) in your PR title, branch name, or commit messages.');
