@@ -1,0 +1,14 @@
+[tool.ruff]
+lint.select = ["E", "F", "I", "B"]
+lint.ignore = ["E501","F401"]
+lint.exclude = [
+    "migrations",
+    "manage.py",
+    "*/asgi.py",
+    "*/wsgi.py",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"*/settings.py" = ["F403", "F405"]
+"*/apps.py" = ["F401"]
+"*/__init__.py" = ["F401"]

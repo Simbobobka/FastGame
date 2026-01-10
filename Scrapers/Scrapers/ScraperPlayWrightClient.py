@@ -5,7 +5,7 @@ class ScraperClient:
     def __init__(self):
         self.playwright = None
         self.browser = None
-    
+
     async def initiate(self):
         """Initialize playwright and connect to browser via websocket"""
         self.playwright = await async_playwright().start()
