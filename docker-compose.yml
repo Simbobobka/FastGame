@@ -16,22 +16,22 @@ services:
       timeout: 5s
       retries: 5
 
-  # app:
-  #   build:
-  #     context: ./FastGame
-  #     dockerfile: Dockerfile
-  #   command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
-  #   volumes:
-  #     - ./FastGame:/app
-  #   ports:
-  #     - "8002:8000"
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
+  app:
+    build:
+      context: ./FastGame
+      dockerfile: Dockerfile
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./FastGame:/app
+    ports:
+      - "8002:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   playwright:
     build:

@@ -1,5 +1,4 @@
 import asyncio
-import logging
 
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
@@ -7,10 +6,6 @@ from fake_useragent import UserAgent
 from ..AbstractScraper import AbstractScraper
 from ..ScraperPlayWrightClient import ScraperClient
 from ..SteamDB.Genres import Genres
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
-# without logging
 
 
 class SteamDBScraper(AbstractScraper):
@@ -40,6 +35,8 @@ class SteamDBScraper(AbstractScraper):
             await self.client.close_connection()
 
     async def __scrape_game_ids(self):
+        """Scrape game IDs from all pages"""
+
         browser = self.client.browser
         page = await browser.new_page(user_agent=UserAgent().random)
         self.page = page
@@ -57,12 +54,10 @@ class SteamDBScraper(AbstractScraper):
 
         try:
             await page.goto(base_url)
-            logging.info(f"Loaded page: {await page.title()}")
             content = await page.content()
 
             max_page = await self.__get_number_of_pages__(content)
-        except Exception as e:
-            logging.error(f"Error during initialization: {e}")
+        except Exception:
             await self.client.close_connection()
             return
 
@@ -73,7 +68,6 @@ class SteamDBScraper(AbstractScraper):
             content = await self.page.content()
             ids_current = await self.__extract_ids_per_page__(content)
             ids.append(ids_current)
-            logging.info(f"Extracted {len(ids_current)} IDs from page {page_num+1}")
             await self.__move_to_next_page__(page_num)
             await asyncio.sleep(3)
 
@@ -82,8 +76,8 @@ class SteamDBScraper(AbstractScraper):
         try:
             await self.page.locator(f'button[data-dt-idx="{current}"]').click()
             await self.page.wait_for_load_state("networkidle")
-        except Exception as e:
-            logging.error(f"Error {e}")
+        except Exception:
+            pass
 
     async def __get_number_of_pages__(self, content):
         """Parse the HTML to get the total number of pages."""
@@ -99,7 +93,7 @@ class SteamDBScraper(AbstractScraper):
         soup = BeautifulSoup(content, "html.parser")
         rows = soup.select("tr.app[data-appid]")
         if not rows:
-            logging.warning("No rows found on the page")
+            pass
         app_ids = [row.get("data-appid") for row in rows]
 
         return app_ids
