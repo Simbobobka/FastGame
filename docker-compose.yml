@@ -16,22 +16,22 @@ services:
       timeout: 5s
       retries: 5
 
-  app:
-    build:
-      context: ./FastGame
-      dockerfile: Dockerfile
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
-    volumes:
-      - ./FastGame:/app
-    ports:
-      - "8002:8000"
-    env_file:
-      - .env
-    environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-    depends_on:
-      postgres:
-        condition: service_healthy
+  # app:
+  #   build:
+  #     context: ./FastGame
+  #     dockerfile: Dockerfile
+  #   command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+  #   volumes:
+  #     - ./FastGame:/app
+  #   ports:
+  #     - "8002:8000"
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
 
   playwright:
     build:
@@ -41,19 +41,28 @@ services:
     ipc: host
     ports:
       - "3001:3000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s = socket.socket(); s.connect(('localhost', 3000)); s.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # scrapers:
-  #   build: ./Scrapers
-  #   volumes:
-  #     - ./Scrapers:/app
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     - PLAYWRIGHT_WS_ENDPOINT=ws://playwright:3000/
-  #     - WEB_URL=http://web:8000
-  #   depends_on:
-  #     - postgres
-  #     - playwright
+  scrapers:
+    build:
+      context: ./Scrapers
+      dockerfile: Dockerfile.scraper
+    volumes:
+      - ./Scrapers:/app
+    env_file:
+      - .env
+    environment:
+      - PLAYWRIGHT_WS_ENDPOINT=ws://playwright:3000/
+      - WEB_URL=http://web:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      playwright:
+        condition: service_healthy
 
 volumes:
   db_data:

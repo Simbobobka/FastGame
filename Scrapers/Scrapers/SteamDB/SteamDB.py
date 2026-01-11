@@ -10,6 +10,7 @@ from ..SteamDB.Genres import Genres
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
+# without logging
 
 
 class SteamDBScraper(AbstractScraper):
@@ -20,12 +21,8 @@ class SteamDBScraper(AbstractScraper):
 
     @property
     def base_url(self):
-        """Return the full URL for the genre page."""
-        return (
-            "https://steamdb.info/tag/"
-            + f"{Genres.SHOOTER.value}/"
-            + "?min_reviews=500"
-        )
+        """Return the full URL"""
+        return "https://steamdb.info/"
 
     @property
     def browser(self):
@@ -33,9 +30,16 @@ class SteamDBScraper(AbstractScraper):
         return self.client.browser
 
     async def scrape(self):
-        """Scrape app IDs from all pages of the genre."""
+        """Scrape app IDs from all pages and detail info about game of the genre."""
         await self.client.initiate()
 
+        try:
+            await self.__scrape_game_ids()
+            await self.__scrape_game_details()
+        finally:
+            await self.client.close_connection()
+
+    async def __scrape_game_ids(self):
         browser = self.client.browser
         page = await browser.new_page(user_agent=UserAgent().random)
         self.page = page
@@ -48,17 +52,19 @@ class SteamDBScraper(AbstractScraper):
             Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
         """
         )
-
         max_page = 1
+        base_url = self.base_url + f"tag/{Genres.SHOOTER.value}/" + "?min_reviews=500"
 
         try:
-            await page.goto(self.base_url)
+            await page.goto(base_url)
             logging.info(f"Loaded page: {await page.title()}")
             content = await page.content()
 
             max_page = await self.__get_number_of_pages__(content)
         except Exception as e:
             logging.error(f"Error during initialization: {e}")
+            await self.client.close_connection()
+            return
 
         ids = []
 
@@ -69,9 +75,7 @@ class SteamDBScraper(AbstractScraper):
             ids.append(ids_current)
             logging.info(f"Extracted {len(ids_current)} IDs from page {page_num+1}")
             await self.__move_to_next_page__(page_num)
-            await asyncio.sleep(5)
-
-        await self.client.close_connection()
+            await asyncio.sleep(3)
 
     async def __move_to_next_page__(self, current):
         """Move to the specified page by clicking the paging button."""
