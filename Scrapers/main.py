@@ -1,9 +1,11 @@
 import asyncio
 
+from Scrapers.SteamDB.SteamDB import SteamDBScraper
+
 
 async def main():
-    # TODO: entry point for all scrapers
-    return
+    scraper = SteamDBScraper()
+    await scraper.scrape()
 
 
 if __name__ == "__main__":
