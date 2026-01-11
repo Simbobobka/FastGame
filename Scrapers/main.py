@@ -2,6 +2,7 @@ import asyncio
 
 
 async def main():
+    # TODO: entry point for all scrapers
     return
 
 

@@ -38,10 +38,9 @@ class SteamDBScraper(AbstractScraper):
         """Scrape game IDs from all pages"""
 
         browser = self.client.browser
-        page = await browser.new_page(user_agent=UserAgent().random)
-        self.page = page
+        self.page = await browser.new_page(user_agent=UserAgent().random)
 
-        await page.add_init_script(
+        await self.page.add_init_script(
             """
             Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
             Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
@@ -49,13 +48,12 @@ class SteamDBScraper(AbstractScraper):
             Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
         """
         )
-        max_page = 1
-        base_url = self.base_url + f"tag/{Genres.SHOOTER.value}/" + "?min_reviews=500"
 
         try:
-            await page.goto(base_url)
-            content = await page.content()
-
+            await self.page.goto(
+                self.base_url + f"tag/{Genres.SHOOTER.value}/" + "?min_reviews=500"
+            )
+            content = await self.page.content()
             max_page = await self.__get_number_of_pages__(content)
         except Exception:
             pass
@@ -66,8 +64,9 @@ class SteamDBScraper(AbstractScraper):
 
             content = await self.page.content()
             ids_current = await self.__extract_ids_per_page__(content)
-            ids.append(ids_current)
-            await self.__move_to_next_page__(page_num)
+            ids.extend(ids_current)
+            print(ids_current)
+            await self.__move_to_next_page__(page_num + 1)
             await asyncio.sleep(3)
 
     async def __move_to_next_page__(self, current):
@@ -78,7 +77,7 @@ class SteamDBScraper(AbstractScraper):
         except Exception:
             pass
 
-    async def __get_number_of_pages__(self, content):
+    async def __get_number_of_pages__(self, content) -> int:
         """Parse the HTML to get the total number of pages."""
 
         soup = BeautifulSoup(content, "html.parser")
@@ -97,7 +96,7 @@ class SteamDBScraper(AbstractScraper):
 
         return app_ids
 
-    async def __scrape_game_details(self, game_id):
+    async def __scrape_game_details(self):
         """scrape game details from SteamDB game page"""
         # TODO: implement game details scraper
         pass
