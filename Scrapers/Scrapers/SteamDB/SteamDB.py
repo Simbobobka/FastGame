@@ -15,7 +15,7 @@ class SteamDBScraper(AbstractScraper):
         self.client = ScraperClient()
 
     @property
-    def base_url(self):
+    def base_url(self) -> str:
         """Return the full URL"""
         return "https://steamdb.info/"
 
@@ -61,11 +61,9 @@ class SteamDBScraper(AbstractScraper):
         ids = []
 
         for page_num in range(max_page):
-
             content = await self.page.content()
             ids_current = await self.__extract_ids_per_page__(content)
             ids.extend(ids_current)
-            print(ids_current)
             await self.__move_to_next_page__(page_num + 1)
             await asyncio.sleep(3)
 
