@@ -58,8 +58,7 @@ class SteamDBScraper(AbstractScraper):
 
             max_page = await self.__get_number_of_pages__(content)
         except Exception:
-            await self.client.close_connection()
-            return
+            pass
 
         ids = []
 
