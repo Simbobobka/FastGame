@@ -54,12 +54,12 @@ class SteamDBScraper(AbstractScraper):
                 self.base_url + f"tag/{Genres.SHOOTER.value}/" + "?min_reviews=500"
             )
             content = await self.page.content()
-            max_page = await self.__get_number_of_pages__(content)
         except Exception:
             pass
 
-        ids = []
+        max_page = await self.__get_number_of_pages__(content)
 
+        ids = []
         for page_num in range(max_page):
             content = await self.page.content()
             ids_current = await self.__extract_ids_per_page__(content)
@@ -81,7 +81,7 @@ class SteamDBScraper(AbstractScraper):
         soup = BeautifulSoup(content, "html.parser")
         buttons = soup.find_all(class_="dt-paging-button")
 
-        return int(buttons[-2].get_text(strip=True))
+        return int(buttons[-2].get_text(strip=True)) if len(buttons) >= 2 else 1
 
     async def __extract_ids_per_page__(self, content):
         """Extract app IDs from the current page's table rows."""
