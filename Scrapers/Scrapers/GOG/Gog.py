@@ -9,10 +9,14 @@ from Scrapers.ScraperPlayWrightClient import ScraperClient
 
 
 class GogScraper(AbstractScraper):
-    BASE_URL = "https://www.gog.com/"
 
     def __init__(self):
         self.client = ScraperClient()
+
+    @property
+    def base_url(self) -> str:
+        """Return the base URL"""
+        return "https://www.gog.com/"
 
     @property
     def browser(self):
@@ -30,7 +34,7 @@ class GogScraper(AbstractScraper):
     async def __scrape_game_ids(self):
         """scrape list of games from GOG homepage"""
         page = await self.browser.new_page(user_agent=UserAgent().random)
-        await page.goto(self.BASE_URL + f"en/games?genres={Genres.SHOOTER.value}")
+        await page.goto(self.base_url + f"en/games?genres={Genres.SHOOTER.value}")
         await sleep(2)
 
         pages = self.__scrape_pages_quantity(await page.content())
@@ -39,7 +43,7 @@ class GogScraper(AbstractScraper):
         for page_number in range(2, pages + 1):
             self.__extract_game_ids(await page.content())
             await page.goto(
-                self.BASE_URL
+                self.base_url
                 + f"en/games?genres={Genres.SHOOTER.value}&page={page_number}"
             )
             await sleep(2)

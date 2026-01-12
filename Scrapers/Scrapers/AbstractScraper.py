@@ -10,6 +10,12 @@ class AbstractScraper(ABC):
         """Return the browser instance"""
         pass
 
+    @property
+    @abstractmethod
+    def base_url(self):
+        """Return the full URL."""
+        pass
+
     @abstractmethod
     async def scrape(self):
         """Main scraping logic - must be implemented by child classes"""
