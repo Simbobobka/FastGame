@@ -49,14 +49,10 @@ class SteamDBScraper(AbstractScraper):
         """
         )
 
-        try:
-            await self.page.goto(
-                self.base_url + f"tag/{Genres.SHOOTER.value}/" + "?min_reviews=500"
-            )
-            content = await self.page.content()
-        except Exception:
-            pass
-
+        await self.page.goto(
+            self.base_url + f"tag/{Genres.SHOOTER.value}/" + "?min_reviews=500"
+        )
+        content = await self.page.content()
         max_page = await self.__get_number_of_pages__(content)
 
         ids = []
