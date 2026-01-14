@@ -6,6 +6,7 @@ from fake_useragent import UserAgent
 from ..AbstractScraper import AbstractScraper
 from ..ScraperPlayWrightClient import ScraperClient
 from ..SteamDB.Genres import Genres
+from ..utils.GameModel import GameModel
 
 
 class SteamDBScraper(AbstractScraper):
@@ -28,15 +29,6 @@ class SteamDBScraper(AbstractScraper):
         """Scrape app IDs from all pages and detail info about game of the genre."""
         await self.client.initiate()
 
-        try:
-            await self.__scrape_game_ids()
-            await self.__scrape_game_details()
-        finally:
-            await self.client.close_connection()
-
-    async def __scrape_game_ids(self):
-        """Scrape game IDs from all pages"""
-
         browser = self.client.browser
         self.page = await browser.new_page(user_agent=UserAgent().random)
 
@@ -48,6 +40,15 @@ class SteamDBScraper(AbstractScraper):
             Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
         """
         )
+
+        try:
+            await self.__scrape_game_ids__()
+            await self.__scrape_game_details__("1583720")
+        finally:
+            await self.client.close_connection()
+
+    async def __scrape_game_ids__(self):
+        """Scrape game IDs from all pages"""
 
         await self.page.goto(
             self.base_url + f"tag/{Genres.SHOOTER.value}/" + "?min_reviews=500"
@@ -90,7 +91,41 @@ class SteamDBScraper(AbstractScraper):
 
         return app_ids
 
-    async def __scrape_game_details(self):
+    async def __scrape_game_details__(self, game_id: str) -> GameModel:
         """scrape game details from SteamDB game page"""
-        # TODO: implement game details scraper
-        pass
+
+        game_url = self.base_url + f"app/{game_id}/"
+
+        await self.page.goto(game_url)
+        content = await self.page.content()
+        soup = BeautifulSoup(content, "html.parser")
+
+        name = soup.find(attrs={"itemprop": "name"}).get_text()
+
+        publisher_tags = soup.find_all("a", attrs={"itemprop": "publisher"})
+        publisher = [i.get("content") for i in publisher_tags]
+
+        platform_tags = soup.find("meta", attrs={"itemprop": "operatingSystem"})
+        raw = platform_tags.get("content")
+        platforms = [i.strip() for i in raw.split(",")]
+
+        price_tag = soup.select_one('td.price-line[data-cc="us"]+td')
+        if price_tag:
+            price = price_tag.get_text(strip=True).replace("$", "")
+            is_free = False
+        else:
+            price = 0.0
+            is_free = True
+
+        date_tag = soup.find("relative-time", {"itemprop": "datePublished"})
+        release_date = date_tag.get("content")
+
+        return GameModel(
+            name=name,
+            url=game_url,
+            publisher=publisher,
+            release_date=release_date,
+            price=price,
+            is_free=is_free,
+            platforms=platforms,
+        )
