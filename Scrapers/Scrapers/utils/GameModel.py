@@ -2,10 +2,10 @@ from pydantic import BaseModel, HttpUrl
 
 
 class GameModel(BaseModel):
-    name: str
-    url: HttpUrl
-    publisher: list[str]
-    release_date: str
-    price: float
-    is_free: bool
-    platforms: list[str]
+    name: str = ""
+    url: HttpUrl | None = None
+    publisher: list[str] = []
+    release_date: str = ""
+    price: float = 0.0
+    is_free: bool = False
+    platforms: list[str] = []
