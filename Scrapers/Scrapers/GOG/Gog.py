@@ -7,8 +7,8 @@ from playwright.async_api import Page
 
 from Scrapers.AbstractScraper import AbstractScraper
 from Scrapers.GOG.Enums.Genres import Genres
-from Scrapers.GOG.Enums.SupportedOsSystems import SupportedOSSystems
 from Scrapers.ScraperPlayWrightClient import ScraperClient
+from Scrapers.utils.Enums.SupportedOsSystems import SupportedOSSystems
 from Scrapers.utils.GameModel import GameModel
 
 
