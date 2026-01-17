@@ -3,6 +3,7 @@ from datetime import datetime
 
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
+from playwright.async_api import Page
 
 from Scrapers.AbstractScraper import AbstractScraper
 from Scrapers.GOG.Enums.Genres import Genres
@@ -29,8 +30,10 @@ class GogScraper(AbstractScraper):
         await self.client.initiate()
 
         try:
-            # await self.__scrape_game_ids()
-            await self.__scrape_game_details("against_the_storm")
+            await self.__scrape_game_ids()
+            await self.__scrape_game_details(
+                "against_the_storm"
+            )  # TODO: temporary hardcoded
         finally:
             await self.client.close_connection()
 
@@ -57,9 +60,30 @@ class GogScraper(AbstractScraper):
         await page.goto(self.base_url + f"en/game/{game_id}")
         await sleep(2)
 
+        await self.__accept_cookies(page)
+
         game_details = self.__extract_game_details(await page.content())
 
         return game_details
+
+    async def __accept_cookies(self, page: Page):
+        """Accept cookies on the page if the prompt appears"""
+        try:
+            cookie_dialog = await page.query_selector("#CybotCookiebotDialog")
+
+            if cookie_dialog:
+                is_visible = await cookie_dialog.is_visible()
+
+                if is_visible:
+                    accept_button = await page.query_selector(
+                        "#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll"
+                    )
+
+                    if accept_button:
+                        await accept_button.click()
+                        await sleep(1)
+        except Exception:
+            pass
 
     def __extract_game_ids(self, content):
         """extract game ids from page content"""
@@ -93,7 +117,7 @@ class GogScraper(AbstractScraper):
         game_details.name = soup.find(
             "h1", class_="productcard-basics__title"
         ).text.strip()
-        game_details.url = self.base_url + soup.find("link", rel="canonical")["href"]
+        game_details.url = soup.find("link", rel="canonical")["href"]
 
         company_rows = soup.find_all(
             "div", class_="table__row details__rating details__row"
@@ -107,10 +131,10 @@ class GogScraper(AbstractScraper):
                     "div", class_="details__content table__row-content"
                 )
                 date_span = content_div.find("span", class_="ng-binding")
-                date_str = date_span.text.strip()
-                date_obj = datetime.strptime(date_str, "%B %d, %Y")
-                game_details.release_date = date_obj.strftime("%d.%m.%Y")
-                break
+                if date_span:
+                    date_str = date_span.text.strip()
+                    date_obj = datetime.strptime(date_str, "%B %d, %Y")
+                    game_details.release_date = date_obj.strftime("%d.%m.%Y")
 
             elif label and "Company:" in label.text:
                 content_div = row.find(
@@ -122,7 +146,6 @@ class GogScraper(AbstractScraper):
                 game_details.publisher.extend(
                     [link.text.strip() for link in publisher_links]
                 )
-                break
 
             elif label and "Works on:" in label.text:
                 content_div = row.find(
@@ -136,7 +159,6 @@ class GogScraper(AbstractScraper):
                     game_details.platforms.append(SupportedOSSystems.LINUX.value)
                 if "mac" in platforms_text:
                     game_details.platforms.append(SupportedOSSystems.MAC.value)
-                break
 
         price_tag = soup.find("span", attrs={"selenium-id": "ProductBasePrice"})
         game_details.price = (
