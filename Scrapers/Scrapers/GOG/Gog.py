@@ -1,11 +1,14 @@
 from asyncio import sleep
+from datetime import datetime
 
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
 from Scrapers.AbstractScraper import AbstractScraper
-from Scrapers.GOG.Genres import Genres
+from Scrapers.GOG.Enums.Genres import Genres
+from Scrapers.GOG.Enums.SupportedOsSystems import SupportedOSSystems
 from Scrapers.ScraperPlayWrightClient import ScraperClient
+from Scrapers.utils.GameModel import GameModel
 
 
 class GogScraper(AbstractScraper):
@@ -26,8 +29,8 @@ class GogScraper(AbstractScraper):
         await self.client.initiate()
 
         try:
-            await self.__scrape_game_ids()
-            await self.__scrape_game_details()
+            # await self.__scrape_game_ids()
+            await self.__scrape_game_details("against_the_storm")
         finally:
             await self.client.close_connection()
 
@@ -48,10 +51,15 @@ class GogScraper(AbstractScraper):
             )
             await sleep(2)
 
-    async def __scrape_game_details(self, game_id):
+    async def __scrape_game_details(self, game_id: str) -> GameModel:
         """scrape game details from GOG game page"""
-        # TODO: implement game details scraper
-        pass
+        page = await self.browser.new_page(user_agent=UserAgent().random)
+        await page.goto(self.base_url + f"en/game/{game_id}")
+        await sleep(2)
+
+        game_details = self.__extract_game_details(await page.content())
+
+        return game_details
 
     def __extract_game_ids(self, content):
         """extract game ids from page content"""
@@ -76,3 +84,64 @@ class GogScraper(AbstractScraper):
             return int(button.find("span").text.strip())
 
         return 1
+
+    def __extract_game_details(self, content) -> GameModel:
+        """extract game details from game page content"""
+        game_details = GameModel()
+        soup = BeautifulSoup(content, "html.parser")
+
+        game_details.name = soup.find(
+            "h1", class_="productcard-basics__title"
+        ).text.strip()
+        game_details.url = self.base_url + soup.find("link", rel="canonical")["href"]
+
+        company_rows = soup.find_all(
+            "div", class_="table__row details__rating details__row"
+        )
+
+        for row in company_rows:
+            label = row.find("div", class_="details__category table__row-label")
+
+            if label and "Release date:" in label.text:
+                content_div = row.find(
+                    "div", class_="details__content table__row-content"
+                )
+                date_span = content_div.find("span", class_="ng-binding")
+                date_str = date_span.text.strip()
+                date_obj = datetime.strptime(date_str, "%B %d, %Y")
+                game_details.release_date = date_obj.strftime("%d.%m.%Y")
+                break
+
+            elif label and "Company:" in label.text:
+                content_div = row.find(
+                    "div", class_="details__content table__row-content"
+                )
+                publisher_links = content_div.find_all(
+                    "a", href=lambda x: x and "publishers=" in x
+                )
+                game_details.publisher.extend(
+                    [link.text.strip() for link in publisher_links]
+                )
+                break
+
+            elif label and "Works on:" in label.text:
+                content_div = row.find(
+                    "div", class_="details__content table__row-content"
+                )
+                platforms_text = content_div.text.strip().lower()
+
+                if "windows" in platforms_text:
+                    game_details.platforms.append(SupportedOSSystems.WINDOWS.value)
+                if "linux" in platforms_text:
+                    game_details.platforms.append(SupportedOSSystems.LINUX.value)
+                if "mac" in platforms_text:
+                    game_details.platforms.append(SupportedOSSystems.MAC.value)
+                break
+
+        price_tag = soup.find("span", attrs={"selenium-id": "ProductBasePrice"})
+        game_details.price = (
+            float(price_tag.text.strip().replace("$", "")) if price_tag else 0.0
+        )
+        game_details.is_free = game_details.price == 0.0
+
+        return game_details
