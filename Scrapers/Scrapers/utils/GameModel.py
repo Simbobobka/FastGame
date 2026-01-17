@@ -1,9 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
 
 
 class GameModel(BaseModel):
     name: str
-    url: str
+    url: HttpUrl
     publisher: list[str]
     release_date: str
     price: float
