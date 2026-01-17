@@ -161,9 +161,16 @@ class GogScraper(AbstractScraper):
                     game_details.platforms.append(SupportedOSSystems.MAC.value)
 
         price_tag = soup.find("span", attrs={"selenium-id": "ProductBasePrice"})
-        game_details.price = (
-            float(price_tag.text.strip().replace("$", "")) if price_tag else 0.0
-        )
-        game_details.is_free = game_details.price == 0.0
+        if price_tag:
+            game_details.price = float(price_tag.text.strip().replace("$", ""))
+            game_details.is_free = False
+        else:
+            free_tag = soup.find("span", class_="product-actions-price__final-amount")
+            if free_tag and "FREE" in free_tag.text.strip().upper():
+                game_details.price = 0.0
+                game_details.is_free = True
+            else:
+                game_details.price = 0.0
+                game_details.is_free = False
 
         return game_details
