@@ -52,13 +52,13 @@ class GogScraper(AbstractScraper):
                 self.base_url
                 + f"en/games?genres={Genres.SHOOTER.value}&page={page_number}"
             )
-            await sleep(2)
+            await page.wait_for_load_state("domcontentloaded")
 
     async def __scrape_game_details(self, game_id: str) -> GameModel:
         """scrape game details from GOG game page"""
         page = await self.browser.new_page(user_agent=UserAgent().random)
         await page.goto(self.base_url + f"en/game/{game_id}")
-        await sleep(2)
+        await page.wait_for_load_state("domcontentloaded")
 
         await self.__accept_cookies(page)
 
