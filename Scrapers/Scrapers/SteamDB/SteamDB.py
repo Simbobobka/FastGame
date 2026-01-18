@@ -6,8 +6,8 @@ from fake_useragent import UserAgent
 from ..AbstractScraper import AbstractScraper
 from ..ScraperPlayWrightClient import ScraperClient
 from ..SteamDB.Genres import Genres
-from ..utils.exception import ScraperError
 from ..utils.Enums.SupportedOsSystems import SupportedOSSystems
+from ..utils.exception import ScraperError
 from ..utils.GameModel import GameModel
 
 
