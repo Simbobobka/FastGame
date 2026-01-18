@@ -1,4 +1,4 @@
-name: CI
+name: Code Quality
 
 on: pull_request
 
@@ -23,4 +23,4 @@ jobs:
         run: ruff check --output-format=github .
 
       - name: Run Black 
-        run: black --check .
+        run: black --check --diff .
