@@ -1,5 +1,5 @@
 class ScraperError(Exception):
-    """Custom exception for scaper's error"""
+    """Custom exception for scraper's error"""
 
     def __init__(self, scraper: str, message=None):
         self.scraper = scraper
