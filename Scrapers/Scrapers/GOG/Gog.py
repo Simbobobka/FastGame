@@ -6,6 +6,7 @@ from fake_useragent import UserAgent
 from Scrapers.AbstractScraper import AbstractScraper
 from Scrapers.GOG.Genres import Genres
 from Scrapers.ScraperPlayWrightClient import ScraperClient
+from Scrapers.utils.exception import ScraperError
 
 
 class GogScraper(AbstractScraper):
@@ -28,6 +29,10 @@ class GogScraper(AbstractScraper):
         try:
             await self.__scrape_game_ids()
             await self.__scrape_game_details()
+
+        except AttributeError as e:
+            raise ScraperError("GOG") from e
+
         finally:
             await self.client.close_connection()
 
