@@ -7,6 +7,7 @@ from ..AbstractScraper import AbstractScraper
 from ..ScraperPlayWrightClient import ScraperClient
 from ..SteamDB.Genres import Genres
 from ..utils.exception import ScraperError
+from ..utils.Enums.SupportedOsSystems import SupportedOSSystems
 from ..utils.GameModel import GameModel
 
 
@@ -149,7 +150,17 @@ class SteamDBScraper(AbstractScraper):
         platform_tags = soup.find("meta", attrs={"itemprop": "operatingSystem"})
         raw = platform_tags.get("content")
 
-        return [i.strip() for i in raw.split(",")]
+        platforms = []
+        for platform in raw.split(","):
+            platform_cleaned = platform.strip()
+            if platform_cleaned == "Windows":
+                platforms.append(SupportedOSSystems.WINDOWS.value)
+            elif platform_cleaned == "macOS":
+                platforms.append(SupportedOSSystems.MAC.value)
+            elif platform_cleaned == "Linux":
+                platforms.append(SupportedOSSystems.LINUX.value)
+
+        return platforms
 
     def __scrape_release_date__(self, soup: BeautifulSoup) -> str:
         """scrape release date"""
