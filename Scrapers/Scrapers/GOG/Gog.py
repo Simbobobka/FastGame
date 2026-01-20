@@ -23,6 +23,11 @@ class GogScraper(AbstractScraper):
         return "https://www.gog.com/"
 
     @property
+    def scraper_name(self) -> str:
+        """Return the scraper's name"""
+        return "gog"
+
+    @property
     def browser(self):
         return self.client.browser
 

@@ -22,6 +22,11 @@ class SteamDBScraper(AbstractScraper):
         return "https://steamdb.info/"
 
     @property
+    def scraper_name(self) -> str:
+        """Return the scraper's name"""
+        return "steamdb"
+
+    @property
     def browser(self):
         """Return the browser instance from the client."""
         return self.client.browser
