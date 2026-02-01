@@ -14,7 +14,8 @@ from Scrapers.utils.GameModel import GameModel
 
 class GogScraper(AbstractScraper):
 
-    def __init__(self):
+    def __init__(self, redis_client=None):
+        super().__init__(redis_client)
         self.client = ScraperClient()
 
     @property
