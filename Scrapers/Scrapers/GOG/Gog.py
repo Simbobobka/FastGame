@@ -36,9 +36,6 @@ class GogScraper(AbstractScraper):
 
         try:
             await self.__scrape_game_ids()
-            await self.__scrape_game_details(
-                "against_the_storm"
-            )  # TODO: temporary hardcoded
         finally:
             await self.client.close_connection()
 
@@ -63,7 +60,7 @@ class GogScraper(AbstractScraper):
                 self.scraper_name, Genres.SHOOTER.value, game_ids_per_page, page_number
             )
 
-    async def __scrape_game_details(self, game_id: str) -> GameModel:
+    async def scrape_game_details(self, game_id: str) -> GameModel:
         """scrape game details from GOG game page"""
         page = await self.browser.new_page(user_agent=UserAgent().random)
         await page.goto(self.base_url + f"en/game/{game_id}")
