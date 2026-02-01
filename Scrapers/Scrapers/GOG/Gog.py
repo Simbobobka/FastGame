@@ -13,7 +13,6 @@ from Scrapers.utils.GameModel import GameModel
 
 
 class GogScraper(AbstractScraper):
-
     def __init__(self, redis_client=None):
         super().__init__(redis_client)
         self.client = ScraperClient()
@@ -50,15 +49,19 @@ class GogScraper(AbstractScraper):
         await sleep(2)
 
         pages = self.__scrape_pages_quantity(await page.content())
-        self.game_ids = set()
 
-        for page_number in range(2, pages + 1):
-            self.__extract_game_ids(await page.content())
-            await page.goto(
-                self.base_url
-                + f"en/games?genres={Genres.SHOOTER.value}&page={page_number}"
-            )
-            await page.wait_for_load_state("domcontentloaded")
+        for page_number in range(1, pages + 1):
+            if page_number > 1:
+                await page.goto(
+                    self.base_url
+                    + f"en/games?genres={Genres.SHOOTER.value}&page={page_number}"
+                )
+                await page.wait_for_load_state("domcontentloaded")
+
+        game_ids_per_page = self.__extract_game_ids(await page.content())
+        await self.redis_client.save_game_ids(
+            self.scraper_name, Genres.SHOOTER.value, game_ids_per_page, page_number
+        )
 
     async def __scrape_game_details(self, game_id: str) -> GameModel:
         """scrape game details from GOG game page"""
@@ -91,18 +94,21 @@ class GogScraper(AbstractScraper):
         except Exception:
             pass
 
-    def __extract_game_ids(self, content):
+    def __extract_game_ids(self, content) -> set[str]:
         """extract game ids from page content"""
         soup = BeautifulSoup(content, "html.parser")
 
         grid_container = soup.find("div", class_="paginated-products-grid")
         game_cards = grid_container.find_all("product-tile")
 
+        game_ids = set()
         for card in game_cards:
             anchor = card.find("a", class_="product-tile")
             href = anchor.get("href")
             game_id = href.rstrip("/").split("/")[-1]
-            self.game_ids.add(game_id)
+            game_ids.add(game_id)
+
+        return game_ids
 
     def __scrape_pages_quantity(self, content):
         """scrape quantity of pages from GOG homepage"""
