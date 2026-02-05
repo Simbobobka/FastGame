@@ -85,7 +85,7 @@ REDIS_BROKER_URL = os.getenv("REDIS_BROKER_URL", f"{REDIS_HOST_BASE}/0")
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": REDIS_BROKER_URL,
+        "LOCATION": REDIS_CACHE_URL,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
