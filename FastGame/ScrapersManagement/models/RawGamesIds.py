@@ -1,6 +1,6 @@
 from constants import SCRAPING_STATUS
 from django.db import models
-from source_model import Source
+from Source import Source
 
 
 class RawGamesIds(models.Model):
