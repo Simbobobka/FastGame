@@ -1,11 +1,12 @@
-from constants import SCRAPING_STATUS
 from django.db import models
-from Source import Source
+
+from .constants import SCRAPING_STATUS
+from .Source import Source
 
 
 class RawGamesIds(models.Model):
-    source_id = models.ForeignKey(Source, on_delete=models.CASCADE)
-    source = models.CharField(max_length=50)
+    source = models.ForeignKey(Source, on_delete=models.CASCADE)
+    source_name = models.CharField(max_length=50)
     genre = models.CharField(max_length=100)
     status = models.CharField(max_length=50, choices=SCRAPING_STATUS.choices)
     page = models.IntegerField(null=True)
