@@ -9,6 +9,7 @@ from Scrapers.AbstractScraper import AbstractScraper
 from Scrapers.GOG.Enums.Genres import Genres
 from Scrapers.ScraperPlayWrightClient import ScraperClient
 from Scrapers.utils.Enums.SupportedOsSystems import SupportedOSSystems
+from Scrapers.utils.exception import ScraperError
 from Scrapers.utils.GameModel import GameModel
 
 
@@ -31,6 +32,11 @@ class GogScraper(AbstractScraper):
 
         try:
             await self.__scrape_game_ids()
+            await self.__scrape_game_details()
+
+        except AttributeError as e:
+            raise ScraperError("GOG") from e
+
             await self.__scrape_game_details(
                 "against_the_storm"
             )  # TODO: temporary hardcoded
