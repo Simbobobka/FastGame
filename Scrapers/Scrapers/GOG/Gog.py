@@ -9,6 +9,7 @@ from Scrapers.AbstractScraper import AbstractScraper
 from Scrapers.GOG.Enums.Genres import Genres
 from Scrapers.ScraperPlayWrightClient import ScraperClient
 from Scrapers.utils.Enums.SupportedOsSystems import SupportedOSSystems
+from Scrapers.utils.exception import ScraperError
 from Scrapers.utils.GameModel import GameModel
 
 

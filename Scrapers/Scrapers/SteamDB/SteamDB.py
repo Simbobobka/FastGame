@@ -7,6 +7,7 @@ from ..AbstractScraper import AbstractScraper
 from ..ScraperPlayWrightClient import ScraperClient
 from ..SteamDB.Genres import Genres
 from ..utils.Enums.SupportedOsSystems import SupportedOSSystems
+from ..utils.exception import ScraperError
 from ..utils.GameModel import GameModel
 
 
@@ -50,6 +51,8 @@ class SteamDBScraper(AbstractScraper):
         try:
             await self.__scrape_game_ids__()
             await self.__scrape_game_details__("730")
+        except AttributeError as e:
+            raise ScraperError("SteamDB") from e
 
         finally:
             await self.client.close_connection()
