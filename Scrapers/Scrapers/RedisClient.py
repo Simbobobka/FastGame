@@ -56,3 +56,9 @@ class RedisScraperClient:
         """Save last scraped page number for a genre"""
         key = f"{scraper_name}:last_scraped_page:{genre}"
         await self._redis.set(key, page)
+
+    async def get_last_scrape_page(self, scraper_name: str, genre: str) -> int:
+        """Get last scraped page number for a genre"""
+        key = f"{scraper_name}:last_scraped_page:{genre}"
+        page = await self._redis.get(key)
+        return int(page) if page else 0
