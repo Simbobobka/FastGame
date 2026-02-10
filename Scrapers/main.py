@@ -14,9 +14,8 @@ async def main():
         gog_scraper = GogScraper(redis_client=redis_client)
         await asyncio.gather(gog_scraper.scrape())
         # TODO: start scrapers as needed
-    except Exception as e:
+    except Exception:
         pass  # TODO: Add proper error handling/logging
-        print(e)
     finally:
         await redis_client.close()
 
