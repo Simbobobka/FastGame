@@ -12,7 +12,6 @@ from ..utils.GameModel import GameModel
 
 
 class SteamDBScraper(AbstractScraper):
-
     def __init__(self):
         """Initialize the scraper with a Playwright client."""
         self.client = ScraperClient()
@@ -21,6 +20,11 @@ class SteamDBScraper(AbstractScraper):
     def base_url(self) -> str:
         """Return the full URL"""
         return "https://steamdb.info/"
+
+    @property
+    def scraper_name(self) -> str:
+        """Return the scraper's name"""
+        return "steamdb"
 
     @property
     def browser(self):
