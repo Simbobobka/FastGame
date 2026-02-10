@@ -12,7 +12,6 @@ from ..utils.GameModel import GameModel
 
 
 class SteamDBScraper(AbstractScraper):
-
     def __init__(self):
         """Initialize the scraper with a Playwright client."""
         self.client = ScraperClient()

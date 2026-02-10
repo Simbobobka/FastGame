@@ -9,14 +9,14 @@ async def main():
     """Entry point for all scrapers with Redis integration"""
 
     redis_client = RedisScraperClient()
-
+    await redis_client.connect()
     try:
-        steamdb_scraper = SteamDBScraper(redis_client=await redis_client.connect())
-        gog_scraper = GogScraper(redis_client=await redis_client.connect())
-        await asyncio.gather(steamdb_scraper.scrape(), gog_scraper.scrape())
+        gog_scraper = GogScraper(redis_client=redis_client)
+        await asyncio.gather(gog_scraper.scrape())
         # TODO: start scrapers as needed
-    except Exception:
+    except Exception as e:
         pass  # TODO: Add proper error handling/logging
+        print(e)
     finally:
         await redis_client.close()
 

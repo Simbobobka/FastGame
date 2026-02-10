@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
+from aiohttp import ClientSession
+
 from .RedisClient import RedisScraperClient
 
 
@@ -33,3 +35,12 @@ class AbstractScraper(ABC):
     async def scrape(self):
         """Main scraping logic - must be implemented by child classes"""
         pass
+
+    @classmethod
+    async def send_data(cls, url: str, data: dict):
+        """Send data to the specified URL"""
+        async with ClientSession() as session:
+            async with session.post(
+                url, json=data, headers={"Content-Type": "application/json"}
+            ) as response:
+                return await response.json()

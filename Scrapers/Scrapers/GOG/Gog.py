@@ -57,8 +57,17 @@ class GogScraper(AbstractScraper):
                 await page.wait_for_load_state("domcontentloaded")
 
             game_ids_per_page = self.__extract_game_ids(await page.content())
-            await self.redis_client.save_game_ids(
-                self.scraper_name, Genres.SHOOTER.value, game_ids_per_page, page_number
+            await self.redis_client.save_last_scrape_page(
+                self.scraper_name, Genres.SHOOTER.value, page_number
+            )
+            await self.send_data(
+                "http://localhost:8002/app/scraped-game-ids/",
+                {
+                    "game_ids": list(game_ids_per_page),
+                    "genre": Genres.SHOOTER.value,
+                    "scraper": self.scraper_name,
+                    "page": page_number,
+                },
             )
 
     async def scrape_game_details(self, game_id: str) -> GameModel:
