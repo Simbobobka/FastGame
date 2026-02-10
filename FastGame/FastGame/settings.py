@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "UserManagement",
     "ScrapersManagement",
+    "django_celery_beat",
 ]
 
 MIDDLEWARE = [
@@ -80,7 +81,7 @@ DATABASES = {
 
 REDIS_HOST_BASE = os.getenv("REDIS_URL", "redis://redis:6379")
 REDIS_CACHE_URL = os.getenv("REDIS_CACHE_URL", f"{REDIS_HOST_BASE}/1")
-REDIS_BROKER_URL = os.getenv("REDIS_BROKER_URL", f"{REDIS_HOST_BASE}/0")
+REDIS_BROKER_URL = os.getenv("CELERY_BROKER", f"{REDIS_HOST_BASE}/0")
 
 CACHES = {
     "default": {
@@ -93,8 +94,8 @@ CACHES = {
 }
 
 
-CELERY_BROKER_URL = REDIS_BROKER_URL
-CELERY_RESULT_BACKEND = REDIS_BROKER_URL
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER", f"{REDIS_HOST_BASE}/0")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_BACKEND", f"{REDIS_HOST_BASE}/0")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"

@@ -34,8 +34,8 @@ services:
         echo "requirepass $REDIS_PASSWORD" >> /usr/local/etc/redis/redis.conf &&
         echo "appendonly yes" >> /usr/local/etc/redis/redis.conf &&
         echo "appendfsync everysec" >> /usr/local/etc/redis/redis.conf &&
-        echo "user default on nopass ~* +@all" > /usr/local/etc/redis/users.acl &&
-        echo "user $REDIS_USER on >$REDIS_USER_PASSWORD ~* +@all" >> /usr/local/etc/redis/users.acl &&
+        echo "user default on nopass ~* &* +@all" > /usr/local/etc/redis/users.acl &&
+        echo "user $REDIS_USER on >$REDIS_USER_PASSWORD ~* &* +@all" >> /usr/local/etc/redis/users.acl &&
         redis-server /usr/local/etc/redis/redis.conf --aclfile /usr/local/etc/redis/users.acl
       '
     healthcheck:
@@ -77,6 +77,50 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  celery_worker:
+    build:
+      context: ./FastGame
+      dockerfile: Dockerfile
+    image: fastgame_celery_worker
+    command: /start-celeryworker
+    volumes:
+      - ./FastGame:/app
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - postgres
+
+  celery_beat:
+    build:
+      context: ./FastGame
+      dockerfile: Dockerfile
+    image: fastgame_celery_beat
+    command: /start-celerybeat
+    volumes:
+      - ./FastGame:/app
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - postgres
+  
+  flower:
+    build:
+      context: ./FastGame
+      dockerfile: Dockerfile
+    image: fastgame_celery_flower
+    command: /start-flower
+    volumes:
+      - ./FastGame:/app
+    env_file:
+      - .env
+    ports:
+      - 5557:5555
+    depends_on:
+      - redis
+      - postgres
 
   scrapers:
     build:
