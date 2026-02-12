@@ -1,11 +1,9 @@
 import json
-import os
 from typing import Optional
 
-from dotenv import load_dotenv
 from redis.asyncio import ConnectionPool, Redis
 
-load_dotenv()
+from Scrapers.settings import redis_config
 
 
 class RedisScraperClient:
@@ -13,9 +11,9 @@ class RedisScraperClient:
 
     def __init__(self):
         self.pool = ConnectionPool(
-            host=os.getenv("REDIS_HOST"),
-            port=int(os.getenv("REDIS_PORT")),
-            db=int(os.getenv("REDIS_DB")),
+            host=redis_config.host,
+            port=redis_config.port,
+            db=redis_config.db,
             max_connections=2,
             decode_responses=True,
         )

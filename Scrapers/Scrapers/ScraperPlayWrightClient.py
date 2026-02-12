@@ -1,6 +1,6 @@
-import os
-
 from playwright.async_api import async_playwright
+
+from Scrapers.settings import playwright_config
 
 
 class ScraperClient:
@@ -12,7 +12,7 @@ class ScraperClient:
         """Initialize playwright and connect to browser via websocket"""
         self.playwright = await async_playwright().start()
         self.browser = await self.playwright.chromium.connect(
-            os.getenv("PLAYWRIGHT_WS_ENDPOINT", "ws://playwright:3000/")
+            playwright_config.playwright_ws_endpoint
         )
 
     async def close_connection(self):

@@ -8,6 +8,7 @@ from playwright.async_api import Page
 from Scrapers.AbstractScraper import AbstractScraper
 from Scrapers.GOG.Enums.Genres import Genres
 from Scrapers.ScraperPlayWrightClient import ScraperClient
+from Scrapers.settings import gog_config
 from Scrapers.utils.Enums.SupportedOsSystems import SupportedOSSystems
 from Scrapers.utils.exception import ScraperError
 from Scrapers.utils.GameModel import GameModel
@@ -61,7 +62,7 @@ class GogScraper(AbstractScraper):
                 self.scraper_name, Genres.SHOOTER.value, page_number
             )
             await self.send_data(
-                "http://localhost:8002/app/scraped-game-ids/",
+                f"{gog_config.django_api}/app/scraped-game-ids/",
                 {
                     "game_ids": list(game_ids_per_page),
                     "genre": Genres.SHOOTER.value,
