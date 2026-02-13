@@ -1,3 +1,6 @@
+from functools import lru_cache
+from typing import Type, TypeVar
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,6 +31,12 @@ class PlaywrightConfig(ConfigBase):
     playwright_ws_endpoint: str
 
 
-redis_config = RedisConfig()
-gog_config = GogConfig()
-playwright_config = PlaywrightConfig()
+ConfigType = TypeVar("ConfigType", bound=ConfigBase)
+
+
+@lru_cache()
+def get_config(config_class: Type[ConfigType]) -> ConfigType:
+    """
+    Universal fabric to create only one config
+    """
+    return config_class()

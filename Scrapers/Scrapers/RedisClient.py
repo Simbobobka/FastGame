@@ -3,17 +3,20 @@ from typing import Optional
 
 from redis.asyncio import ConnectionPool, Redis
 
-from Scrapers.settings import redis_config
+from Scrapers.settings import RedisConfig, get_config
 
 
 class RedisScraperClient:
     """Redis client for scraper operations with common Redis patterns"""
 
     def __init__(self):
+
+        config = get_config(RedisConfig)
+
         self.pool = ConnectionPool(
-            host=redis_config.host,
-            port=redis_config.port,
-            db=redis_config.db,
+            host=config.host,
+            port=config.port,
+            db=config.db,
             max_connections=2,
             decode_responses=True,
         )
