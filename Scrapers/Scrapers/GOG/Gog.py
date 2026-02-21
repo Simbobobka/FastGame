@@ -7,16 +7,16 @@ from playwright.async_api import Page
 
 from Scrapers.AbstractScraper import AbstractScraper
 from Scrapers.GOG.Enums.Genres import Genres
+from Scrapers.RedisClient import RedisScraperClient
 from Scrapers.ScraperPlayWrightClient import ScraperClient
 from Scrapers.utils.Enums.SupportedOsSystems import SupportedOSSystems
-from Scrapers.utils.exception import ScraperError
 from Scrapers.utils.GameModel import GameModel
 
 
 class GogScraper(AbstractScraper):
-    def __init__(self, redis_client=None):
-        super().__init__(redis_client)
-        self.client = ScraperClient()
+    def __init__(self, redis_client: RedisScraperClient, browser_client: ScraperClient):
+        super().__init__(redis_client, browser_client)
+        print("Initialized GogScraper")
 
     @property
     def base_url(self) -> str:
@@ -28,35 +28,32 @@ class GogScraper(AbstractScraper):
         """Return the scraper's name"""
         return "gog"
 
-    @property
-    def browser(self):
-        return self.client.browser
-
-    async def scrape(self):
-        await self.client.initiate()
-
-        try:
+    async def scrape(self, game_id: str = None, page_number: int = 0):
+        if game_id:
+            return await self.__scrape_game_details(game_id, page_number)
+        else:
             await self.__scrape_game_ids()
-        finally:
-            await self.client.close_connection()
 
     async def __scrape_game_ids(self):
         """scrape list of games from GOG homepage"""
-        page = await self.browser.new_page(user_agent=UserAgent().random)
-        await page.goto(self.base_url + f"en/games?genres={Genres.SHOOTER.value}")
+        await self.client.pages[0].goto(
+            self.base_url + f"en/games?genres={Genres.SHOOTER.value}"
+        )
         await sleep(2)
 
-        pages = self.__scrape_pages_quantity(await page.content())
+        pages = self.__scrape_pages_quantity(await self.client.pages[0].content())
 
         for page_number in range(1, pages + 1):
             if page_number > 1:
-                await page.goto(
+                await self.client.pages[0].goto(
                     self.base_url
                     + f"en/games?genres={Genres.SHOOTER.value}&page={page_number}"
                 )
-                await page.wait_for_load_state("domcontentloaded")
+                await self.client.pages[0].wait_for_load_state("domcontentloaded")
 
-            game_ids_per_page = self.__extract_game_ids(await page.content())
+            game_ids_per_page = self.__extract_game_ids(
+                await self.client.pages[0].content()
+            )
             await self.redis_client.save_last_scrape_page(
                 self.scraper_name, Genres.SHOOTER.value, page_number
             )
@@ -70,15 +67,16 @@ class GogScraper(AbstractScraper):
                 },
             )
 
-    async def scrape_game_details(self, game_id: str) -> GameModel:
+    async def __scrape_game_details(self, game_id: str, page_number: int) -> GameModel:
         """scrape game details from GOG game page"""
-        page = await self.browser.new_page(user_agent=UserAgent().random)
-        await page.goto(self.base_url + f"en/game/{game_id}")
-        await page.wait_for_load_state("domcontentloaded")
+        await self.client.pages[page_number].goto(self.base_url + f"en/game/{game_id}")
+        await self.client.pages[page_number].wait_for_load_state("domcontentloaded")
 
-        await self.__accept_cookies(page)
+        await self.__accept_cookies(self.client.pages[page_number])
 
-        game_details = self.__extract_game_details(await page.content())
+        game_details = self.__extract_game_details(
+            await self.client.pages[page_number].content()
+        )
 
         return game_details
 
@@ -99,7 +97,7 @@ class GogScraper(AbstractScraper):
                         await accept_button.click()
                         await sleep(1)
         except Exception:
-            pass
+            print("No cookie dialog found or error accepting cookies")
 
     def __extract_game_ids(self, content) -> set[str]:
         """extract game ids from page content"""
