@@ -9,6 +9,7 @@ from Scrapers.AbstractScraper import AbstractScraper
 from Scrapers.GOG.Enums.Genres import Genres
 from Scrapers.RedisClient import RedisScraperClient
 from Scrapers.ScraperPlayWrightClient import ScraperClient
+from Scrapers.settings import GogConfig, get_config
 from Scrapers.utils.Enums.SupportedOsSystems import SupportedOSSystems
 from Scrapers.utils.GameModel import GameModel
 
@@ -17,6 +18,7 @@ class GogScraper(AbstractScraper):
     def __init__(self, redis_client: RedisScraperClient, browser_client: ScraperClient):
         super().__init__(redis_client, browser_client)
         print("Initialized GogScraper")
+        self.config = get_config(GogConfig)
 
     @property
     def base_url(self) -> str:
@@ -58,7 +60,7 @@ class GogScraper(AbstractScraper):
                 self.scraper_name, Genres.SHOOTER.value, page_number
             )
             await self.send_data(
-                "http://localhost:8002/app/scraped-game-ids/",
+                f"{self.config.django_api}/app/scraped-game-ids/",
                 {
                     "game_ids": list(game_ids_per_page),
                     "genre": Genres.SHOOTER.value,

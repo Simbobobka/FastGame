@@ -1,17 +1,20 @@
 from playwright.async_api import BrowserContext, Page, async_playwright
 
+from Scrapers.settings import PlaywrightConfig, get_config
+
 
 class ScraperClient:
     def __init__(self, tabs_quantity: int = 1):
         self.playwright = None
         self.browser = None
         self.tabs_quantity = tabs_quantity
+        self.config = get_config(PlaywrightConfig)
 
     async def initiate(self):
         """Initialize playwright and connect to browser via websocket"""
         self.playwright = await async_playwright().start()
-        self.browser = await self.playwright.chromium.launch(
-            headless=False,  # TODO: connect to docker
+        self.browser = await self.playwright.chromium.connect(
+            self.config.playwright_ws_endpoint
         )
         self.context: BrowserContext = await self.browser.new_context()
         # each page should have own context
