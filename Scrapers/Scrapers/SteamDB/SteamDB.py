@@ -3,12 +3,12 @@ import asyncio
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
-from Scrapers.AbstractScraper import AbstractScraper
-from Scrapers.ScraperPlayWrightClient import ScraperClient
-from Scrapers.SteamDB.Genres import Genres
-from Scrapers.utils.Enums.SupportedOsSystems import SupportedOSSystems
-from Scrapers.utils.exception import ScraperError
-from Scrapers.utils.GameModel import GameModel
+from ..AbstractScraper import AbstractScraper
+from ..ScraperPlayWrightClient import ScraperClient
+from ..SteamDB.Genres import Genres
+from ..utils.Enums.SupportedOsSystems import SupportedOSSystems
+from ..utils.exception import ScraperError
+from ..utils.GameModel import GameModel
 
 
 class SteamDBScraper(AbstractScraper):
