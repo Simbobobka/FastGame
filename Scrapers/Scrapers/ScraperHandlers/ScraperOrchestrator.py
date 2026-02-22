@@ -1,14 +1,11 @@
 import asyncio
 
 from Scrapers.GOG.Gog import GogScraper
-
-# from Scrapers.AbstractScraper import AbstractScraper
+from Scrapers.HttpRequestClient import HttpRequestClient
 from Scrapers.RedisClient import RedisScraperClient
 from Scrapers.ScraperHandlers.DetailScraperWorker import DetailScraperWorker
 from Scrapers.ScraperHandlers.IdsScraperWorker import IdsScraperWorker
-from Scrapers.ScraperPlayWrightClient import ScraperClient
-
-# from Scrapers.SteamDB.SteamDB import SteamDBScraper
+from Scrapers.ScrapersFactory import ScrapersFactory
 
 
 class ScraperOrchestrator:
@@ -17,39 +14,44 @@ class ScraperOrchestrator:
     def __init__(self):
         self.workers = []
         self.redis_client = RedisScraperClient()
+        self.http_client = HttpRequestClient()
         self._initialized = False
 
     async def initialize(self):
         """Initialize shared resources"""
         if self._initialized:
             return
+
         try:
             await self.redis_client.connect()
+            await self.http_client.initialize()
         except Exception as e:
-            print(f"Failed to initialize Redis client: {e}")
+            print(f"Failed to initialize clients: {e}")
             raise
 
         self._initialized = True
 
     async def setup_workers(self):
-        """Initialize all scraper workers"""
-        gog_id_browser = ScraperClient(tabs_quantity=1)
-        gog_id_scraper = GogScraper(
+        """Initialize all scraper workers with dependency injection"""
+        self.workers = []
+
+        ids_scrapers = ScrapersFactory.create_ids_scraper(
+            scrapers=[GogScraper],
             redis_client=self.redis_client,
-            browser_client=gog_id_browser,
+            http_client=self.http_client,
         )
 
-        # Detail scraper: 1 browser with 5 pages
-        gog_detail_browser = ScraperClient(tabs_quantity=5)
-        gog_detail_scraper = GogScraper(
+        details_scrapers = ScrapersFactory.create_details_scraper(
+            scrapers=[GogScraper],
             redis_client=self.redis_client,
-            browser_client=gog_detail_browser,
+            http_client=self.http_client,
         )
 
-        self.workers = [
-            IdsScraperWorker(scraper=gog_id_scraper),
-            DetailScraperWorker(scraper=gog_detail_scraper),
-        ]
+        for scraper in ids_scrapers:
+            self.workers.append(IdsScraperWorker(scraper=scraper))
+
+        for scraper in details_scrapers:
+            self.workers.append(DetailScraperWorker(scraper=scraper))
 
     async def run_all(self):
         """Run all workers concurrently"""
@@ -64,6 +66,9 @@ class ScraperOrchestrator:
 
     async def _cleanup(self):
         """Clean up shared resources"""
+        if self.http_client:
+            await self.http_client.close()
+
         if self.redis_client:
             await self.redis_client.close()
 
