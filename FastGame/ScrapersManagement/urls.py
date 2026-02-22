@@ -6,7 +6,5 @@ urlpatterns = [
     path(
         "scraped-game-ids/", process_scraped_games_ids, name="process_scraped_game_ids"
     ),
-    path(
-        "post-game-ids", PostRawGamesIdsAPIView.as_view(), name="post_raw_games_ids"
-    ),
+    path("post-game-ids", PostRawGamesIdsAPIView.as_view(), name="post_raw_games_ids"),
 ]
