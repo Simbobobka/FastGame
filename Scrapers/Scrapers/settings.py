@@ -18,12 +18,10 @@ class RedisConfig(ConfigBase):
     db: int
 
 
-class SteamDBConfig(ConfigBase): ...
-
-
-class GogConfig(ConfigBase):
+class ScrapersConfig(ConfigBase):
 
     django_api: str
+    tabs_quantity: int = 5
 
 
 class PlaywrightConfig(ConfigBase):
