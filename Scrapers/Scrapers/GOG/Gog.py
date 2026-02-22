@@ -2,22 +2,29 @@ from asyncio import sleep
 from datetime import datetime
 
 from bs4 import BeautifulSoup
-from fake_useragent import UserAgent
 from playwright.async_api import Page
 
 from Scrapers.AbstractScraper import AbstractScraper
 from Scrapers.GOG.Enums.Genres import Genres
+from Scrapers.HttpRequestClient import HttpRequestClient
 from Scrapers.RedisClient import RedisScraperClient
 from Scrapers.ScraperPlayWrightClient import ScraperClient
-from Scrapers.settings import GogConfig, get_config
+from Scrapers.settings import ScrapersConfig, get_config
 from Scrapers.utils.Enums.SupportedOsSystems import SupportedOSSystems
 from Scrapers.utils.GameModel import GameModel
 
 
 class GogScraper(AbstractScraper):
-    def __init__(self, redis_client: RedisScraperClient, browser_client: ScraperClient):
-        super().__init__(redis_client, browser_client)
-        self.config = get_config(GogConfig)
+    """GOG storefront scraper implementation"""
+
+    def __init__(
+        self,
+        redis_client: RedisScraperClient,
+        browser_client: ScraperClient,
+        http_client: HttpRequestClient,
+    ):
+        super().__init__(redis_client, browser_client, http_client)
+        self.config: ScrapersConfig = get_config(ScrapersConfig)
 
     @property
     def base_url(self) -> str:
@@ -33,10 +40,11 @@ class GogScraper(AbstractScraper):
         if game_id:
             return await self.__scrape_game_details(game_id, page_number)
         else:
+            print("Starting GOG game ID scraping...")
             await self.__scrape_game_ids()
 
     async def __scrape_game_ids(self):
-        """scrape list of games from GOG homepage"""
+        """Scrape list of games from GOG homepage"""
         await self.client.pages[0].goto(
             self.base_url + f"en/games?genres={Genres.SHOOTER.value}"
         )
@@ -55,21 +63,31 @@ class GogScraper(AbstractScraper):
             game_ids_per_page = self.__extract_game_ids(
                 await self.client.pages[0].content()
             )
+            print(
+                f"Scraped page {page_number}/{pages}, found {len(game_ids_per_page)} game IDs"
+            )
+
             await self.redis_client.save_last_scrape_page(
                 self.scraper_name, Genres.SHOOTER.value, page_number
             )
-            await self.send_data(
-                f"{self.base_url}/app/scraped-game-ids/",
-                {
-                    "game_ids": list(game_ids_per_page),
-                    "genre": Genres.SHOOTER.value,
-                    "scraper": self.scraper_name,
-                    "page": page_number,
-                },
-            )
+
+            try:
+                await self.send_data(
+                    f"{self.config.django_api}/app/scraped-game-ids/",
+                    {
+                        "game_ids": list(game_ids_per_page),
+                        "genre": Genres.SHOOTER.value,
+                        "scraper": self.scraper_name,
+                        "page": page_number,
+                    },
+                )
+                print(f"Successfully sent data for page {page_number}")
+            except Exception as e:
+                print(f"Failed to send data for page {page_number}: {e}")
+                print("Continuing with next page...")
 
     async def __scrape_game_details(self, game_id: str, page_number: int) -> GameModel:
-        """scrape game details from GOG game page"""
+        """Scrape game details from GOG game page"""
         await self.client.pages[page_number].goto(self.base_url + f"en/game/{game_id}")
         await self.client.pages[page_number].wait_for_load_state("domcontentloaded")
 
@@ -97,11 +115,11 @@ class GogScraper(AbstractScraper):
                     if accept_button:
                         await accept_button.click()
                         await sleep(1)
-        except Exception:
-            print("No cookie dialog found or error accepting cookies")
+        except Exception as e:
+            print(f"Error accepting cookies: {e}")
 
     def __extract_game_ids(self, content) -> set[str]:
-        """extract game ids from page content"""
+        """Extract game ids from page content"""
         soup = BeautifulSoup(content, "html.parser")
 
         grid_container = soup.find("div", class_="paginated-products-grid")
@@ -116,8 +134,8 @@ class GogScraper(AbstractScraper):
 
         return game_ids
 
-    def __scrape_pages_quantity(self, content):
-        """scrape quantity of pages from GOG homepage"""
+    def __scrape_pages_quantity(self, content) -> int:
+        """Scrape quantity of pages from GOG homepage"""
         soup = BeautifulSoup(content, "html.parser")
 
         button = soup.find("button", attrs={"selenium-id": "smallPaginationPage"})
@@ -128,7 +146,7 @@ class GogScraper(AbstractScraper):
         return 1
 
     def __extract_game_details(self, content) -> GameModel:
-        """extract game details from game page content"""
+        """Extract game details from game page content"""
         game_details = GameModel()
         soup = BeautifulSoup(content, "html.parser")
 
