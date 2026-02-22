@@ -1,70 +1,98 @@
 import asyncio
-import json
-
-import httpx
+import traceback
+from asyncio import sleep
+from typing import Optional
 
 from Scrapers.AbstractScraper import AbstractScraper
-from Scrapers.RedisClient import RedisScraperClient
+from Scrapers.utils.DetailsScrapingTask import DetailsScrapingTask
 
 
 class DetailScraperWorker:
-    """Generic worker for scraping game details (works with any scraper)"""
+    """Worker for scraping game details - distributes tasks across browser tabs"""
 
-    def __init__(self, scraper: AbstractScraper):
+    def __init__(self, scraper: AbstractScraper, polling_interval: int = 5):
         self.scraper = scraper
+        self.polling_interval = polling_interval
+        self.tabs_count = scraper.client.tabs_quantity
 
-    async def process_task(self, task_data: dict):
-        """Process single game detail scraping task"""
-        game_id = task_data["game_id"]
-        # callback_url = "http://localhost:8002/app/scraped-game-details/"  # TODO: should be managed from config
+    async def process_task(
+        self, task_data: DetailsScrapingTask, tab_index: int
+    ) -> Optional[dict]:
+        """Process single game detail scraping task on a specific tab"""
+        game_id = task_data.game_id
 
         try:
-            game_details = await self.scraper.scrape(game_id=game_id, page_number=0)
-            print(f"Scraped details for game ID {game_id}: {game_details}")
+            print(
+                f"[{self.scraper.scraper_name}] Scraping game {game_id} on tab {tab_index}"
+            )
+
+            await self.scraper.scrape(game_id=game_id, page_number=tab_index)
+            print(f"[{self.scraper.scraper_name}] Successfully scraped {game_id}")
         except Exception as e:
+            print(f"[{self.scraper.scraper_name}] Error scraping {game_id}: {e}")
+            traceback.print_exc()
             await self._requeue_failed_task(task_data)
-            print(f"Error scraping {game_id}: {e}")
 
     async def run(self):
-        """Main worker loop - pulls tasks and distributes across contexts"""
+        """Main worker loop - pulls tasks and distributes across tabs"""
         await self.scraper.client.initiate()
-        queue_key = f"scraping:details:{self.scraper.scraper_name}"
-        # await asyncio.sleep(100)
+        queue_key = f"scraping:queue:{self.scraper.scraper_name}"
+
+        print(
+            f"[{self.scraper.scraper_name}] DetailScraperWorker started with {self.tabs_count} tabs"
+        )
 
         try:
             while True:
-                print(
-                    f"Worker {self.__class__.__name__} checking for tasks in {queue_key}..."
-                )
-                await asyncio.sleep(
-                    5
-                )  # Polling interval - can be adjusted or made event-driven
-                # task_jsons = self.redis_client.rpop(queue_key, self.concurrency)
+                try:
+                    queue_length = await self.scraper.redis_client.get_queue_length(
+                        queue_key
+                    )
 
-                # if not task_jsons:
-                #     await asyncio.sleep(5)
-                #     continue
+                    if queue_length == 0:
+                        print(
+                            f"[{self.scraper.scraper_name}] No tasks in queue, sleeping for {self.polling_interval} seconds..."
+                        )
+                        await sleep(self.polling_interval)
+                        continue
 
-                # if isinstance(task_jsons, str):
-                #     task_jsons = [task_jsons]
+                    tasks_to_pull = min(self.tabs_count, queue_length)
+                    tasks: list[DetailsScrapingTask] = (
+                        await self.scraper.redis_client.pop_tasks(
+                            queue_key, tasks_to_pull
+                        )
+                    )
 
-                # tasks = [json.loads(t) for t in task_jsons]
+                    print(
+                        f"[{self.scraper.scraper_name}] Processing {len(tasks)} tasks across {len(tasks)} tabs"
+                    )
 
-                # await asyncio.gather(
-                #     *[self.process_task(t) for t in tasks],
-                #     return_exceptions=True,
-                # )
-        except Exception as e:
-            print(f"Error in {self.__class__.__name__}: {e}")
+                    await asyncio.gather(
+                        *[
+                            self.process_task(task, tab_idx)
+                            for tab_idx, task in enumerate(tasks)
+                        ],
+                        return_exceptions=True,
+                    )
+
+                    print(
+                        f"[{self.scraper.scraper_name}] Completed batch: {len(tasks)} tasks processed"
+                    )
+                except Exception as e:
+                    print(f"[{self.scraper.scraper_name}] Error processing batch: {e}")
+                    traceback.print_exc()
+                    await sleep(self.polling_interval)
+                    continue
+        except KeyboardInterrupt:
+            print(f"[{self.scraper.scraper_name}] Received shutdown signal")
         finally:
             await self.scraper.client.close_connection()
+            print(f"[{self.scraper.scraper_name}] DetailScraperWorker stopped")
 
-    async def _send_result(self, callback_url: str, game_details):
-        """Send scraped details back to Django"""
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            await client.post(callback_url, json=game_details.dict())
-
-    async def _requeue_failed_task(self, task_data: dict):
-        """Re-queue failed task for retry"""
-        queue_key = f"scraping:details:{self.scraper.scraper_name}"
-        self.scraper.redis_client.lpush(queue_key, json.dumps(task_data))
+    async def _requeue_failed_task(self, task_data: DetailsScrapingTask):
+        """Requeue failed task for retry"""
+        queue_key = f"scraping:queue:{self.scraper.scraper_name}"
+        await self.scraper.redis_client.requeue_task(
+            queue_key, task_data.model_dump_json()
+        )
+        print(f"[{self.scraper.scraper_name}] Requeued task: {task_data.game_id}")

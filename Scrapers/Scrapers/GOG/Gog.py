@@ -86,7 +86,7 @@ class GogScraper(AbstractScraper):
                 print(f"Failed to send data for page {page_number}: {e}")
                 print("Continuing with next page...")
 
-    async def __scrape_game_details(self, game_id: str, page_number: int) -> GameModel:
+    async def __scrape_game_details(self, game_id: str, page_number: int) -> None:
         """Scrape game details from GOG game page"""
         await self.client.pages[page_number].goto(self.base_url + f"en/game/{game_id}")
         await self.client.pages[page_number].wait_for_load_state("domcontentloaded")
@@ -97,7 +97,14 @@ class GogScraper(AbstractScraper):
             await self.client.pages[page_number].content()
         )
 
-        return game_details
+        await self.send_data(
+            f"{self.config.django_api}/app/game-details/",
+            {
+                "game_details": game_details.model_dump(),
+                "game_id": game_id,
+                "scraper": self.scraper_name,
+            },
+        )
 
     async def __accept_cookies(self, page: Page):
         """Accept cookies on the page if the prompt appears"""

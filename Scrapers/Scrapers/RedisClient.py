@@ -4,6 +4,7 @@ from typing import Optional
 from redis.asyncio import ConnectionPool, Redis
 
 from Scrapers.settings import RedisConfig, get_config
+from Scrapers.utils.DetailsScrapingTask import DetailsScrapingTask
 
 
 class RedisScraperClient:
@@ -46,3 +47,23 @@ class RedisScraperClient:
         key = f"{scraper_name}:last_scraped_page:{genre}"
         page = await self._redis.get(key)
         return int(page) if page else 0
+
+    async def pop_tasks(self, queue_key: str, count: int) -> list[DetailsScrapingTask]:
+        """Atomically pop multiple tasks from queue for processing"""
+        tasks = []
+        for _ in range(count):
+            task = await self._redis.rpop(queue_key)
+            if not task:
+                break
+
+            tasks.append(DetailsScrapingTask(**json.loads(task)))
+
+        return tasks
+
+    async def requeue_task(self, queue_key: str, task_data: str):
+        """Requeue failed task to the front of the queue"""
+        await self._redis.lpush(queue_key, task_data)
+
+    async def get_queue_length(self, queue_key: str) -> int:
+        """Get number of tasks in queue"""
+        return await self._redis.llen(queue_key)
