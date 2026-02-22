@@ -1,5 +1,7 @@
 from django.db import models
 
+from ScrapersManagement.models.Managers.RawGamesIdsManager import RawGamesIdsManager
+
 from .constants import SCRAPING_STATUS
 from .Source import Source
 
@@ -13,3 +15,5 @@ class RawGamesIds(models.Model):
     retry_count = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    objects = RawGamesIdsManager()
