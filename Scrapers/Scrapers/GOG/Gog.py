@@ -17,7 +17,6 @@ from Scrapers.utils.GameModel import GameModel
 class GogScraper(AbstractScraper):
     def __init__(self, redis_client: RedisScraperClient, browser_client: ScraperClient):
         super().__init__(redis_client, browser_client)
-        print("Initialized GogScraper")
         self.config = get_config(GogConfig)
 
     @property
@@ -42,7 +41,7 @@ class GogScraper(AbstractScraper):
             self.base_url + f"en/games?genres={Genres.SHOOTER.value}"
         )
         await sleep(2)
-
+        await self.__accept_cookies(self.client.pages[0])
         pages = self.__scrape_pages_quantity(await self.client.pages[0].content())
 
         for page_number in range(1, pages + 1):
@@ -60,7 +59,7 @@ class GogScraper(AbstractScraper):
                 self.scraper_name, Genres.SHOOTER.value, page_number
             )
             await self.send_data(
-                f"{self.config.django_api}/app/scraped-game-ids/",
+                f"{self.base_url}/app/scraped-game-ids/",
                 {
                     "game_ids": list(game_ids_per_page),
                     "genre": Genres.SHOOTER.value,
