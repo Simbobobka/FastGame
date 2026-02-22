@@ -7,7 +7,7 @@ services:
     restart: always
     env_file: ./.env
     ports:
-      - "5433:5432"
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - db_data:/var/lib/postgresql
     healthcheck:
@@ -19,34 +19,21 @@ services:
   redis:
     image: redis:latest
     container_name: redis
-    environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - REDIS_USER=${REDIS_USER}
-      - REDIS_USER_PASSWORD=${REDIS_USER_PASSWORD}
     ports:
-      - "6380:${REDIS_PORT}"
+      - "${REDIS_PORT}:6379"
     volumes:
-      - db_data:/redisdata
+      - redis_data:/data
     command: >
-      sh -c '
-        mkdir -p /usr/local/etc/redis &&
-        echo "bind 0.0.0.0" > /usr/local/etc/redis/redis.conf &&
-        echo "requirepass $REDIS_PASSWORD" >> /usr/local/etc/redis/redis.conf &&
-        echo "appendonly yes" >> /usr/local/etc/redis/redis.conf &&
-        echo "appendfsync everysec" >> /usr/local/etc/redis/redis.conf &&
-        echo "user default on nopass ~* &* +@all" > /usr/local/etc/redis/users.acl &&
-        echo "user $REDIS_USER on >$REDIS_USER_PASSWORD ~* &* +@all" >> /usr/local/etc/redis/users.acl &&
-        redis-server /usr/local/etc/redis/redis.conf --aclfile /usr/local/etc/redis/users.acl
-      '
+      redis-server 
+      --appendonly yes 
+      --user ${REDIS_USER} on >${REDIS_USER_PASSWORD} ~* +@all 
+      --requirepass ${REDIS_PASSWORD}
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "$REDIS_PASSWORD", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 30s
       timeout: 10s
       retries: 5
     restart: unless-stopped
-    tty: true
-    stdin_open: true
-
   app:
     build:
       context: ./FastGame
@@ -141,3 +128,4 @@ services:
 
 volumes:
   db_data:
+  redis_data:
