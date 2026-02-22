@@ -3,13 +3,19 @@ import asyncio
 from Scrapers.GOG.Gog import GogScraper
 from Scrapers.HttpRequestClient import HttpRequestClient
 from Scrapers.RedisClient import RedisScraperClient
-from Scrapers.ScraperHandlers.DetailScraperWorker import DetailScraperWorker
-from Scrapers.ScraperHandlers.IdsScraperWorker import IdsScraperWorker
 from Scrapers.ScrapersFactory import ScrapersFactory
 
 
 class ScraperOrchestrator:
     """Manager for scrapers"""
+
+    # Register all scraper classes here
+    SCRAPER_CLASSES = [
+        GogScraper,
+        # Add new scrapers here:
+        # SteamScraper,
+        # EpicScraper,
+    ]
 
     def __init__(self):
         self.workers = []
@@ -31,32 +37,19 @@ class ScraperOrchestrator:
 
         self._initialized = True
 
-    async def setup_workers(self):
-        """Initialize all scraper workers with dependency injection"""
-        self.workers = []
-
-        ids_scrapers = ScrapersFactory.create_ids_scraper(
-            scrapers=[GogScraper],
+    def setup_workers(self):
+        """Initialize all scraper workers using factory"""
+        factory = ScrapersFactory(
             redis_client=self.redis_client,
             http_client=self.http_client,
         )
 
-        details_scrapers = ScrapersFactory.create_details_scraper(
-            scrapers=[GogScraper],
-            redis_client=self.redis_client,
-            http_client=self.http_client,
-        )
-
-        for scraper in ids_scrapers:
-            self.workers.append(IdsScraperWorker(scraper=scraper))
-
-        for scraper in details_scrapers:
-            self.workers.append(DetailScraperWorker(scraper=scraper))
+        self.workers = factory.create_all_workers(self.SCRAPER_CLASSES)
 
     async def run_all(self):
         """Run all workers concurrently"""
         await self.initialize()
-        await self.setup_workers()
+        self.setup_workers()
 
         try:
             tasks = [worker.run() for worker in self.workers]

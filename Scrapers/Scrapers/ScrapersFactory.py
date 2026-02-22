@@ -1,52 +1,66 @@
+from typing import Type
+
 from Scrapers.AbstractScraper import AbstractScraper
 from Scrapers.HttpRequestClient import HttpRequestClient
 from Scrapers.RedisClient import RedisScraperClient
+from Scrapers.ScraperHandlers.DetailScraperWorker import DetailScraperWorker
+from Scrapers.ScraperHandlers.IdsScraperWorker import IdsScraperWorker
+from Scrapers.ScraperHandlers.ScraperWorkerPair import ScraperWorkerPair
 from Scrapers.ScraperPlayWrightClient import ScraperClient
+from Scrapers.settings import ScrapersConfig, get_config
 
 
 class ScrapersFactory:
-    """Factory for creating scraper instances"""
+    """Factory for creating scraper instances and workers"""
 
-    @staticmethod
-    def create_ids_scraper(
-        scrapers: list[AbstractScraper],
+    def __init__(
+        self,
         redis_client: RedisScraperClient,
         http_client: HttpRequestClient,
-    ) -> list[AbstractScraper]:
-        """Create scraper instances"""
-        result = []
+    ):
+        self.redis_client = redis_client
+        self.http_client = http_client
+        self.config: ScrapersConfig = get_config(ScrapersConfig)
 
-        for scraper in scrapers:
-            ids_browser_client = ScraperClient()
+    def create_workers_for_scraper(
+        self,
+        scraper_class: Type[AbstractScraper],
+    ) -> ScraperWorkerPair:
+        """Create ID and detail workers for a single scraper class"""
+        ids_scraper = self._create_scraper(scraper_class, tabs_quantity=1)
+        details_scraper = self._create_scraper(
+            scraper_class, tabs_quantity=self.config.tabs_quantity
+        )
 
-            result.append(
-                scraper(
-                    redis_client=redis_client,
-                    browser_client=ids_browser_client,
-                    http_client=http_client,
-                )
-            )
+        return ScraperWorkerPair(
+            ids_worker=IdsScraperWorker(scraper=ids_scraper),
+            details_worker=DetailScraperWorker(scraper=details_scraper),
+        )
 
-        return result
+    def create_all_workers(
+        self,
+        scraper_classes: list[Type[AbstractScraper]],
+    ) -> list[IdsScraperWorker | DetailScraperWorker]:
+        """Create workers for multiple scraper classes"""
+        workers = []
 
-    @staticmethod
-    def create_details_scraper(
-        scrapers: list[AbstractScraper],
-        redis_client: RedisScraperClient,
-        http_client: HttpRequestClient,
-    ) -> list[AbstractScraper]:
-        """Create scraper instances"""
-        result = []
+        for scraper_class in scraper_classes:
+            pair = self.create_workers_for_scraper(scraper_class)
+            workers.append(pair.ids_worker)
+            workers.append(pair.details_worker)
 
-        for scraper in scrapers:
-            details_browser_client = ScraperClient(tabs_quantity=5)
+        return workers
 
-            result.append(
-                scraper(
-                    redis_client=redis_client,
-                    browser_client=details_browser_client,
-                    http_client=http_client,
-                )
-            )
+    def _create_scraper(
+        self,
+        scraper_class: Type[AbstractScraper],
+        tabs_quantity: int,
+    ) -> AbstractScraper:
+        """Create a configured scraper instance"""
+        browser_client = ScraperClient(tabs_quantity=tabs_quantity)
 
-        return result
+        return scraper_class(
+            redis_client=self.redis_client,
+            browser_client=browser_client,
+            http_client=self.http_client,
+        )
