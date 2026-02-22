@@ -1,6 +1,4 @@
 from Scrapers.AbstractScraper import AbstractScraper
-from Scrapers.RedisClient import RedisScraperClient
-from Scrapers.ScraperPlayWrightClient import ScraperClient
 
 
 class IdsScraperWorker:
@@ -11,14 +9,17 @@ class IdsScraperWorker:
 
     async def run(self):
         """Execute ID scraping workflow"""
+        print(f"Starting {self.scraper.scraper_name} ID scraper worker...")
         await self.scraper.client.initiate()
 
         try:
-            print(
-                f"Worker {self.__class__.__name__} starting ID scraping for {self.scraper.scraper_name}..."
-            )
             await self.scraper.scrape()
+            print(f"{self.scraper.scraper_name} ID scraping completed successfully")
         except Exception as e:
-            print(f"Error in {self.__class__.__name__}: {e}")
+            print(f"Error in IdsScraperWorker: {e}")
+            import traceback
+
+            traceback.print_exc()
         finally:
             await self.scraper.client.close_connection()
+            print(f"{self.scraper.scraper_name} ID scraper worker stopped")
