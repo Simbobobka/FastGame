@@ -6,18 +6,22 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ScrapersManagement', '0001_initial'),
+        ("ScrapersManagement", "0001_initial"),
     ]
 
     operations = [
         migrations.RenameField(
-            model_name='rawgamesids',
-            old_name='source_name',
-            new_name='game_id',
+            model_name="rawgamesids",
+            old_name="source_name",
+            new_name="game_id",
         ),
         migrations.AlterField(
-            model_name='rawgamesids',
-            name='status',
-            field=models.CharField(choices=[('UN', 'Unprocessed'), ('SC', 'Scraped'), ('FA', 'Failed')], db_index=True, max_length=50),
+            model_name="rawgamesids",
+            name="status",
+            field=models.CharField(
+                choices=[("UN", "Unprocessed"), ("SC", "Scraped"), ("FA", "Failed")],
+                db_index=True,
+                max_length=50,
+            ),
         ),
     ]
