@@ -4,6 +4,11 @@ from .models.RawGamesIds import RawGamesIds
 
 
 class RawGamesIdsSerializer(serializers.ModelSerializer):
+    """
+    This serializer is used to serialize and deserialize RawGamesIds instances,
+    converting them to and from JSON representations.
+    """
+
     class Meta:
         model = RawGamesIds
         fields = [
