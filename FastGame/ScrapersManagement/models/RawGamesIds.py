@@ -8,9 +8,11 @@ from .Source import Source
 
 class RawGamesIds(models.Model):
     source = models.ForeignKey(Source, on_delete=models.CASCADE)
-    source_name = models.CharField(max_length=255)
+    game_id = models.CharField(max_length=255)
     genre = models.CharField(max_length=100)
-    status = models.CharField(max_length=50, choices=SCRAPING_STATUS.choices)
+    status = models.CharField(
+        max_length=50, choices=SCRAPING_STATUS.choices, db_index=True
+    )
     page = models.IntegerField(null=True)
     retry_count = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
