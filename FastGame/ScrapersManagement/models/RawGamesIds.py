@@ -6,7 +6,7 @@ from .Source import Source
 
 class RawGamesIds(models.Model):
     source = models.ForeignKey(Source, on_delete=models.CASCADE)
-    game_id = models.CharField(max_length=50)
+    game_id = models.CharField(max_length=150)
     genre = models.CharField(max_length=100)
     status = models.CharField(
         max_length=50, choices=SCRAPING_STATUS.choices, db_index=True
