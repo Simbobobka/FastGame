@@ -25,8 +25,8 @@ def raw_games_ids_bulk_saved_handler(sender, instances: list["RawGamesIds"], **k
 
         for instance in instances:
             task_data = DetailsScrapingTask(
-                game_id=instance.source_name,
-                scraper_name=instance.source.name,
+                game_id=instance.game_id,
+                scraper_name=instance.game_id,
                 genre=instance.genre,
                 raw_id=instance.id,
             )
