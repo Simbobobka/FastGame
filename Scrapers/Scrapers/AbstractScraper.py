@@ -1,46 +1,41 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 
-from aiohttp import ClientSession
-
-from .RedisClient import RedisScraperClient
+from Scrapers.HttpRequestClient import HttpRequestClient
+from Scrapers.RedisClient import RedisScraperClient
+from Scrapers.ScraperPlayWrightClient import ScraperClient
 
 
 class AbstractScraper(ABC):
-    """Base class for all scrapers with common interface"""
+    """Base class for all scrapers with dependency injection"""
 
-    def __init__(self, redis_client: Optional[RedisScraperClient] = None):
-        """Initialize scraper with optional Redis client"""
+    def __init__(
+        self,
+        redis_client: RedisScraperClient,
+        browser_client: ScraperClient,
+        http_client: HttpRequestClient,
+    ):
+        """Initialize scraper with injected dependencies"""
         self.redis_client = redis_client
+        self.client = browser_client
+        self.http_client = http_client
 
     @property
     @abstractmethod
-    def browser(self):
-        """Return the browser instance"""
+    def base_url(self) -> str:
+        """Return the base URL for the scraper"""
         pass
 
     @property
     @abstractmethod
-    def base_url(self):
-        """Return the full URL."""
-        pass
-
-    @property
-    @abstractmethod
-    def scraper_name(self):
-        """Return the scraper's name"""
+    def scraper_name(self) -> str:
+        """Return the scraper's unique identifier"""
         pass
 
     @abstractmethod
-    async def scrape(self):
+    async def scrape(self, game_id: str = None, page_number: int = 0):
         """Main scraping logic - must be implemented by child classes"""
         pass
 
-    @classmethod
-    async def send_data(cls, url: str, data: dict):
-        """Send data to the specified URL"""
-        async with ClientSession() as session:
-            async with session.post(
-                url, json=data, headers={"Content-Type": "application/json"}
-            ) as response:
-                return await response.json()
+    async def send_data(self, url: str, data: dict) -> int:
+        """Send scraped data via HTTP with retry logic"""
+        return await self.http_client.send_with_backoff(url, data)

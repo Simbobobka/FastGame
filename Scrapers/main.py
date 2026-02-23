@@ -1,23 +1,20 @@
 import asyncio
 
-from Scrapers.GOG.Gog import GogScraper
-from Scrapers.RedisClient import RedisScraperClient
-from Scrapers.SteamDB.SteamDB import SteamDBScraper
+from Scrapers.ScraperHandlers.ScraperOrchestrator import ScraperOrchestrator
 
 
 async def main():
     """Entry point for all scrapers with Redis integration"""
 
-    redis_client = RedisScraperClient()
-    await redis_client.connect()
+    orchestrator = ScraperOrchestrator()
+
     try:
-        gog_scraper = GogScraper(redis_client=redis_client)
-        await asyncio.gather(gog_scraper.scrape())
-        # TODO: start scrapers as needed
-    except Exception:
+        await orchestrator.run_all()
+    except Exception as e:
+        print(f"Error running orchestrator: {e}")
         pass  # TODO: Add proper error handling/logging
     finally:
-        await redis_client.close()
+        print("Scraper orchestrator has stopped.")
 
 
 if __name__ == "__main__":
