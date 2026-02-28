@@ -1,15 +1,12 @@
-from asyncio import sleep
 from datetime import datetime
 
-from bs4 import BeautifulSoup
-from playwright.async_api import Page
+from bs4 import BeautifulSoup, Tag
 
 from Scrapers.AbstractScraper import AbstractScraper
 from Scrapers.AllKeyShop.Enums.Genres import Genres
 from Scrapers.AllKeyShop.QueryParamethers import CatalogQueryParams
 from Scrapers.HttpRequestClient import HttpRequestClient
 from Scrapers.RedisClient import RedisScraperClient
-from Scrapers.ScraperPlayWrightClient import ScraperClient
 from Scrapers.settings import ScrapersConfig, get_config
 from Scrapers.utils.Enums.SupportedOsSystems import SupportedOSSystems
 from Scrapers.utils.GameModel import GameModel
@@ -48,7 +45,104 @@ class AllKeyShopScraper(AbstractScraper):
         self,
         game_id: str,
         page_number: int,
-    ) -> None: ...
+    ) -> None:
+        """Scrape detailed information for a single game"""
+        url = self.base_url + f"blog/en-us/{game_id}"
+        status, content = await self.http_client.get_request(
+            url,
+            json=False,
+        )
+
+        if status != 200:
+            raise Exception(
+                f"Failed to fetch game details for {game_id}, status code: {status}"
+            )
+
+        game_details = self.__extract_game_details(content, url)
+
+        await self.send_data(
+            f"{self.config.django_api}/app/game-details/",
+            {
+                "game_details": game_details.model_dump(),
+                "game_id": game_id,
+                "scraper": self.scraper_name,
+            },
+        )
+
+    def __extract_game_details(self, html_content: str, url: str) -> GameModel:
+        """Extract game details from HTML content"""
+        soup = BeautifulSoup(html_content, "html.parser")
+
+        name = self.__extract_name(soup)
+        publisher = self.__extract_info_field(soup, "Publisher")
+        release_date = self.__extract_release_date(soup)
+        platforms = self.__extract_os_platforms()
+        price = self.__extract_recommended_price(soup)
+
+        return GameModel(
+            name=name,
+            url=url,
+            publisher=publisher,
+            release_date=release_date,
+            platforms=platforms,
+            price=price,
+            is_free=price == 0.0,
+        )
+
+    def __extract_name(self, soup: BeautifulSoup) -> str:
+        """Extract game name from the h1 span"""
+        tag = soup.select_one("h1 span[data-itemprop='name']")
+        return tag.get_text(strip=True) if tag else ""
+
+    def __extract_info_field(self, soup: BeautifulSoup, label: str) -> list[str]:
+        """Extract all anchor texts from a game-info-table field by label"""
+        value_tag = self.__find_info_value_tag(soup, label)
+        if not value_tag:
+            return []
+        return [a.get_text(strip=True) for a in value_tag.find_all("a")]
+
+    def __extract_info_field_text(self, soup: BeautifulSoup, label: str) -> str:
+        """Extract plain text from a game-info-table field by label"""
+        value_tag = self.__find_info_value_tag(soup, label)
+        return value_tag.get_text(strip=True) if value_tag else ""
+
+    def __extract_release_date(self, soup: BeautifulSoup) -> str:
+        """Extract and format release date as dd.mm.yyyy"""
+        raw = self.__extract_info_field_text(soup, "Release date")
+        if not raw:
+            return ""
+        try:
+            return datetime.strptime(raw, "%d %B %Y").strftime("%d.%m.%Y")
+        except ValueError:
+            return raw
+
+    def __extract_os_platforms(self) -> list[str]:
+        """AllKeyShop does not expose OS info — default to Windows"""
+        return [SupportedOSSystems.WINDOWS.value]
+
+    def __extract_recommended_price(self, soup: BeautifulSoup) -> float:
+        """Extract price from the second 'ALLKEYSHOP RECOMMENDS' offer block"""
+        offers = soup.select("a.recomended_offers")
+        if len(offers) < 2:
+            return 0.0
+
+        recommended_offer = offers[1]
+        price_tag = recommended_offer.select_one("div.offers-price")
+        if not price_tag:
+            return 0.0
+
+        raw = price_tag.get_text(strip=True).replace("$", "").strip()
+        try:
+            return float(raw)
+        except ValueError:
+            return 0.0
+
+    def __find_info_value_tag(self, soup: BeautifulSoup, label: str) -> Tag | None:
+        """Find the value div next to a game-info-table-label"""
+        for label_tag in soup.select(".game-info-table-label"):
+            if label_tag.get_text(strip=True) == label:
+                return label_tag.find_next_sibling(class_="game-info-table-value")
+        return None
 
     async def __scrape_game_ids(self):
         """Scrape list of games from AllKeyShop homepage"""
