@@ -119,7 +119,8 @@ services:
       - .env
     environment:
       - PLAYWRIGHT_WS_ENDPOINT=ws://playwright:3000/
-      - WEB_URL=http://web:8000
+      - WEB_URL=http://app:8000
+      - DJANGO_API=http://app:8000
     depends_on:
       postgres:
         condition: service_healthy
