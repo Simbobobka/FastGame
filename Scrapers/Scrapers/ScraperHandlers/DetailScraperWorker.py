@@ -8,12 +8,14 @@ from Scrapers.utils.DetailsScrapingTask import DetailsScrapingTask
 
 
 class DetailScraperWorker:
-    """Worker for scraping game details - distributes tasks across browser tabs"""
+    """Worker for scraping game details - distributes tasks concurrently"""
 
-    def __init__(self, scraper: AbstractScraper, polling_interval: int = 5):
+    def __init__(
+        self, scraper: AbstractScraper, concurrency: int, polling_interval: int = 5
+    ):
         self.scraper = scraper
+        self.concurrency = concurrency
         self.polling_interval = polling_interval
-        self.tabs_count = scraper.client.tabs_quantity
 
     async def process_task(
         self, task_data: DetailsScrapingTask, tab_index: int
@@ -41,7 +43,7 @@ class DetailScraperWorker:
         queue_key = f"scraping:queue:{self.scraper.scraper_name}"
 
         print(
-            f"[{self.scraper.scraper_name}] DetailScraperWorker started with {self.tabs_count} tabs"
+            f"[{self.scraper.scraper_name}] DetailScraperWorker started with {self.concurrency} concurrent workers"
         )
 
         try:
@@ -58,7 +60,7 @@ class DetailScraperWorker:
                         await sleep(self.polling_interval)
                         continue
 
-                    tasks_to_pull = min(self.tabs_count, queue_length)
+                    tasks_to_pull = min(self.concurrency, queue_length)
                     tasks: list[DetailsScrapingTask] = (
                         await self.scraper.redis_client.pop_tasks(
                             queue_key, tasks_to_pull
@@ -66,7 +68,7 @@ class DetailScraperWorker:
                     )
 
                     print(
-                        f"[{self.scraper.scraper_name}] Processing {len(tasks)} tasks across {len(tasks)} tabs"
+                        f"[{self.scraper.scraper_name}] Processing {len(tasks)} tasks concurrently"
                     )
 
                     await asyncio.gather(
@@ -88,7 +90,8 @@ class DetailScraperWorker:
         except KeyboardInterrupt:
             print(f"[{self.scraper.scraper_name}] Received shutdown signal")
         finally:
-            await self.scraper.client.close_connection()
+            if self.scraper.client:
+                await self.scraper.client.close_connection()
             print(f"[{self.scraper.scraper_name}] DetailScraperWorker stopped")
 
     async def _requeue_failed_task(self, task_data: DetailsScrapingTask):

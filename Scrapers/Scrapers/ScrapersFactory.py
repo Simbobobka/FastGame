@@ -27,14 +27,17 @@ class ScrapersFactory:
         scraper_class: Type[AbstractScraper],
     ) -> ScraperWorkerPair:
         """Create ID and detail workers for a single scraper class"""
-        ids_scraper = self._create_scraper(scraper_class, tabs_quantity=1)
+        ids_scraper = self._create_scraper(scraper_class, concurrency=1)
         details_scraper = self._create_scraper(
-            scraper_class, tabs_quantity=self.config.tabs_quantity
+            scraper_class, concurrency=self.config.concurrency
         )
-
+        print(f"Created workers for {scraper_class.__name__}")
         return ScraperWorkerPair(
             ids_worker=IdsScraperWorker(scraper=ids_scraper),
-            details_worker=DetailScraperWorker(scraper=details_scraper),
+            details_worker=DetailScraperWorker(
+                scraper=details_scraper,
+                concurrency=self.config.concurrency,
+            ),
         )
 
     def create_all_workers(
@@ -54,7 +57,7 @@ class ScrapersFactory:
     def _create_scraper(
         self,
         scraper_class: Type[AbstractScraper],
-        tabs_quantity: int,
+        concurrency: int,
     ) -> AbstractScraper:
         """Create a configured scraper instance"""
         if not scraper_class.requires_browser:
@@ -63,7 +66,7 @@ class ScrapersFactory:
                 http_client=self.http_client,
             )
 
-        browser_client = ScraperClient(tabs_quantity=tabs_quantity)
+        browser_client = ScraperClient(concurrency=concurrency)
 
         return scraper_class(
             redis_client=self.redis_client,

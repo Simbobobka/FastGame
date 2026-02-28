@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from Scrapers.HttpRequestClient import HttpRequestClient
 from Scrapers.RedisClient import RedisScraperClient
@@ -14,7 +15,7 @@ class AbstractScraper(ABC):
         self,
         redis_client: RedisScraperClient,
         http_client: HttpRequestClient,
-        browser_client: ScraperClient,
+        browser_client: Optional[ScraperClient] = None,
     ):
         """Initialize scraper with injected dependencies"""
         self.redis_client = redis_client

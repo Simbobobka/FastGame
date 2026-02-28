@@ -21,7 +21,7 @@ class RedisConfig(ConfigBase):
 class ScrapersConfig(ConfigBase):
 
     django_api: str
-    tabs_quantity: int = 5
+    concurrency: int = 5
 
 
 class PlaywrightConfig(ConfigBase):
