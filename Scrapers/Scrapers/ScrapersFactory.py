@@ -57,10 +57,16 @@ class ScrapersFactory:
         tabs_quantity: int,
     ) -> AbstractScraper:
         """Create a configured scraper instance"""
+        if not scraper_class.requires_browser:
+            return scraper_class(
+                redis_client=self.redis_client,
+                http_client=self.http_client,
+            )
+
         browser_client = ScraperClient(tabs_quantity=tabs_quantity)
 
         return scraper_class(
             redis_client=self.redis_client,
-            browser_client=browser_client,
             http_client=self.http_client,
+            browser_client=browser_client,
         )

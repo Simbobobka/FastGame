@@ -8,11 +8,13 @@ from Scrapers.ScraperPlayWrightClient import ScraperClient
 class AbstractScraper(ABC):
     """Base class for all scrapers with dependency injection"""
 
+    requires_browser: bool = True
+
     def __init__(
         self,
         redis_client: RedisScraperClient,
-        browser_client: ScraperClient,
         http_client: HttpRequestClient,
+        browser_client: ScraperClient,
     ):
         """Initialize scraper with injected dependencies"""
         self.redis_client = redis_client

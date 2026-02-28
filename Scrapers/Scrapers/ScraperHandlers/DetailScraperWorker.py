@@ -35,7 +35,9 @@ class DetailScraperWorker:
 
     async def run(self):
         """Main worker loop - pulls tasks and distributes across tabs"""
-        await self.scraper.client.initiate()
+        if self.scraper.client:
+            await self.scraper.client.initiate()
+
         queue_key = f"scraping:queue:{self.scraper.scraper_name}"
 
         print(

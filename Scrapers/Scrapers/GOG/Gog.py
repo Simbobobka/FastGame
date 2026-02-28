@@ -20,10 +20,10 @@ class GogScraper(AbstractScraper):
     def __init__(
         self,
         redis_client: RedisScraperClient,
-        browser_client: ScraperClient,
         http_client: HttpRequestClient,
+        browser_client: ScraperClient,
     ):
-        super().__init__(redis_client, browser_client, http_client)
+        super().__init__(redis_client, http_client, browser_client)
         self.config: ScrapersConfig = get_config(ScrapersConfig)
 
     @property
