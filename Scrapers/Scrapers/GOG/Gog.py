@@ -73,7 +73,7 @@ class GogScraper(AbstractScraper):
 
             try:
                 await self.send_data(
-                    f"{self.config.django_api}/app/post-game-ids/",
+                    f"{self.config.django_api}/app/post-game-ids",
                     {
                         "game_ids": list(game_ids_per_page),
                         "genre": Genres.SHOOTER.value,
