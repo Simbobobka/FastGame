@@ -35,9 +35,9 @@ class AllKeyShopScraper(AbstractScraper):
         """Return the scraper's name"""
         return "allkeyshop"
 
-    async def scrape(self, game_id: str = None, page_number: int = 0):
+    async def scrape(self, game_id: str = None, page_number: int = 0, raw_id: int = 0):
         if game_id:
-            return await self.__scrape_game_details(game_id, page_number)
+            return await self.__scrape_game_details(game_id, page_number, raw_id)
         else:
             await self.__scrape_game_ids()
 
@@ -45,6 +45,7 @@ class AllKeyShopScraper(AbstractScraper):
         self,
         game_id: str,
         page_number: int,
+        raw_id: int,
     ) -> None:
         """Scrape detailed information for a single game"""
         url = self.base_url + f"blog/en-us/{game_id}"
@@ -64,7 +65,7 @@ class AllKeyShopScraper(AbstractScraper):
             f"{self.config.django_api}/app/game-details/",
             {
                 "game_details": game_details.model_dump(),
-                "game_id": game_id,
+                "raw_id": raw_id,
                 "scraper": self.scraper_name,
             },
         )

@@ -36,9 +36,11 @@ class GogScraper(AbstractScraper):
         """Return the scraper's name"""
         return "gog"
 
-    async def scrape(self, game_id: str = None, page_number: int = 0):
+    async def scrape(
+        self, game_id: str = None, page_number: int = 0, raw_id: int = 0
+    ) -> None:
         if game_id:
-            return await self.__scrape_game_details(game_id, page_number)
+            return await self.__scrape_game_details(game_id, page_number, raw_id)
         else:
             print("Starting GOG game ID scraping...")
             await self.__scrape_game_ids()
@@ -86,7 +88,9 @@ class GogScraper(AbstractScraper):
                 print(f"Failed to send data for page {page_number}: {e}")
                 print("Continuing with next page...")
 
-    async def __scrape_game_details(self, game_id: str, page_number: int) -> None:
+    async def __scrape_game_details(
+        self, game_id: str, page_number: int, raw_id: int
+    ) -> None:
         """Scrape game details from GOG game page"""
         await self.client.pages[page_number].goto(self.base_url + f"en/game/{game_id}")
         await self.client.pages[page_number].wait_for_load_state("domcontentloaded")
@@ -98,10 +102,10 @@ class GogScraper(AbstractScraper):
         )
 
         await self.send_data(
-            f"{self.config.django_api}/app/game-details/",
+            f"{self.config.django_api}/app/game-details",
             {
                 "game_details": game_details.model_dump(),
-                "game_id": game_id,
+                "raw_id": raw_id,
                 "scraper": self.scraper_name,
             },
         )
