@@ -4,10 +4,10 @@ from Scrapers.settings import PlaywrightConfig, get_config
 
 
 class ScraperClient:
-    def __init__(self, tabs_quantity: int = 1):
+    def __init__(self, concurrency: int = 1):
         self.playwright = None
         self.browser = None
-        self.tabs_quantity = tabs_quantity
+        self.concurrency = concurrency
         self.config = get_config(PlaywrightConfig)
 
     async def initiate(self):
@@ -19,7 +19,7 @@ class ScraperClient:
         self.context: BrowserContext = await self.browser.new_context()
         # each page should have own context
         self.pages: list[Page] = [
-            await self.context.new_page() for _ in range(self.tabs_quantity)
+            await self.context.new_page() for _ in range(self.concurrency)
         ]
 
     async def close_connection(self):

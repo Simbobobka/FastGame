@@ -12,7 +12,7 @@ class RedisScraperClient:
 
     def __init__(self):
 
-        config = get_config(RedisConfig)
+        config: RedisConfig = get_config(RedisConfig)
 
         self.pool = ConnectionPool(
             host=config.host,

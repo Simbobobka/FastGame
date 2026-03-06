@@ -10,7 +10,8 @@ class IdsScraperWorker:
     async def run(self):
         """Execute ID scraping workflow"""
         print(f"Starting {self.scraper.scraper_name} ID scraper worker...")
-        await self.scraper.client.initiate()
+        if self.scraper.client:
+            await self.scraper.client.initiate()
 
         try:
             await self.scraper.scrape()

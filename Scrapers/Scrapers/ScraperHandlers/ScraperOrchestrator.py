@@ -1,5 +1,6 @@
 import asyncio
 
+from Scrapers.AllKeyShop.AllKeyShop import AllKeyShopScraper
 from Scrapers.GOG.Gog import GogScraper
 from Scrapers.HttpRequestClient import HttpRequestClient
 from Scrapers.RedisClient import RedisScraperClient
@@ -12,6 +13,7 @@ class ScraperOrchestrator:
     # Register all scraper classes here
     SCRAPER_CLASSES = [
         GogScraper,
+        AllKeyShopScraper,
         # Add new scrapers here:
         # SteamScraper,
         # EpicScraper,

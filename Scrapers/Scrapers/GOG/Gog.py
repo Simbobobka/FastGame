@@ -20,10 +20,10 @@ class GogScraper(AbstractScraper):
     def __init__(
         self,
         redis_client: RedisScraperClient,
-        browser_client: ScraperClient,
         http_client: HttpRequestClient,
+        browser_client: ScraperClient,
     ):
-        super().__init__(redis_client, browser_client, http_client)
+        super().__init__(redis_client, http_client, browser_client)
         self.config: ScrapersConfig = get_config(ScrapersConfig)
 
     @property
@@ -73,7 +73,7 @@ class GogScraper(AbstractScraper):
 
             try:
                 await self.send_data(
-                    f"{self.config.django_api}/app/scraped-game-ids/",
+                    f"{self.config.django_api}/app/post-game-ids",
                     {
                         "game_ids": list(game_ids_per_page),
                         "genre": Genres.SHOOTER.value,

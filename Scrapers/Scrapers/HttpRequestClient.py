@@ -1,5 +1,5 @@
 from asyncio import sleep
-from typing import Optional
+from typing import Any, Optional
 
 from aiohttp import ClientError, ClientSession
 
@@ -72,3 +72,13 @@ class HttpRequestClient:
         """Execute POST request and return status code"""
         async with self.session.post(url, json=data) as response:
             return response.status
+
+    async def get_request(
+        self, url: str, headers: dict = None, params: dict = None, json: bool = False
+    ) -> tuple[int, dict | str]:
+        """Execute GET request and return status code"""
+        async with self.session.get(url, headers=headers, params=params) as response:
+            if json:
+                return response.status, await response.json()
+
+            return response.status, await response.text()
