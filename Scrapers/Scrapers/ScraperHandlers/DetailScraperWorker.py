@@ -85,6 +85,7 @@ class DetailScraperWorker:
                     print(
                         f"[{self.scraper.scraper_name}] Completed batch: {len(tasks)} tasks processed"
                     )
+                    await asyncio.sleep(2)
                 except Exception as e:
                     print(f"[{self.scraper.scraper_name}] Error processing batch: {e}")
                     traceback.print_exc()

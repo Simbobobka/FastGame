@@ -1,7 +1,9 @@
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, ConfigDict, HttpUrl
 
 
 class GameModel(BaseModel):
+    model_config = ConfigDict(validate_assignment=True)
+
     name: str = ""
     url: HttpUrl | None = None
     publisher: list[str] = []

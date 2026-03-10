@@ -37,14 +37,13 @@ class AllKeyShopScraper(AbstractScraper):
 
     async def scrape(self, game_id: str = None, page_number: int = 0, raw_id: int = 0):
         if game_id:
-            return await self.__scrape_game_details(game_id, page_number, raw_id)
+            return await self.__scrape_game_details(game_id, raw_id)
         else:
             await self.__scrape_game_ids()
 
     async def __scrape_game_details(
         self,
         game_id: str,
-        page_number: int,
         raw_id: int,
     ) -> None:
         """Scrape detailed information for a single game"""
@@ -56,19 +55,23 @@ class AllKeyShopScraper(AbstractScraper):
 
         if status != 200:
             raise Exception(
-                f"Failed to fetch game details for {game_id}, status code: {status}"
+                f"Failed to fetch game details for {game_id}, status code: {status}, URL: {url}"
             )
 
         game_details = self.__extract_game_details(content, url)
 
-        await self.send_data(
-            f"{self.config.django_api}/app/game-details/",
-            {
-                "game_details": game_details.model_dump(),
-                "raw_id": raw_id,
-                "scraper": self.scraper_name,
-            },
-        )
+        try:
+            await self.send_data(
+                f"{self.config.django_api}/app/game-details",
+                {
+                    "game_details": game_details.model_dump(mode="json"),
+                    "raw_id": raw_id,
+                    "scraper": self.scraper_name,
+                },
+            )
+        except ValueError as e:
+            print(f"Failed to save game details for {game_id}: {e}")
+            raise
 
     def __extract_game_details(self, html_content: str, url: str) -> GameModel:
         """Extract game details from HTML content"""
@@ -113,7 +116,7 @@ class AllKeyShopScraper(AbstractScraper):
         if not raw:
             return ""
         try:
-            return datetime.strptime(raw, "%d %B %Y").strftime("%d.%m.%Y")
+            return datetime.strptime(raw, "%d %B %Y").strftime("%Y-%m-%d")
         except ValueError:
             return raw
 

@@ -68,7 +68,7 @@ class GamesDetailsSerializer(serializers.Serializer):
 
         game_details = GameDetails.objects.create(
             name=game_details_data["name"],
-            description=game_details_data["description"],
+            description=game_details_data.get("description", ""),
             release_date=game_details_data["release_date"],
             price=game_details_data.get("price"),
             url=game_details_data["url"],

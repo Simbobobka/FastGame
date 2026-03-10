@@ -101,14 +101,18 @@ class GogScraper(AbstractScraper):
             await self.client.pages[page_number].content()
         )
 
-        await self.send_data(
-            f"{self.config.django_api}/app/game-details",
-            {
-                "game_details": game_details.model_dump(),
-                "raw_id": raw_id,
-                "scraper": self.scraper_name,
-            },
-        )
+        try:
+            await self.send_data(
+                f"{self.config.django_api}/app/game-details",
+                {
+                    "game_details": game_details.model_dump(mode="json"),
+                    "raw_id": raw_id,
+                    "scraper": self.scraper_name,
+                },
+            )
+        except ValueError as e:
+            print(f"Failed to save game details for {game_id}: {e}")
+            raise
 
     async def __accept_cookies(self, page: Page):
         """Accept cookies on the page if the prompt appears"""
@@ -181,7 +185,7 @@ class GogScraper(AbstractScraper):
                 if date_span:
                     date_str = date_span.text.strip()
                     date_obj = datetime.strptime(date_str, "%B %d, %Y")
-                    game_details.release_date = date_obj.strftime("%d.%m.%Y")
+                    game_details.release_date = date_obj.strftime("%Y-%m-%d")
 
             elif label and "Company:" in label.text:
                 content_div = row.find(
