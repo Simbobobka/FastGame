@@ -78,6 +78,7 @@ class AllKeyShopScraper(AbstractScraper):
         soup = BeautifulSoup(html_content, "html.parser")
 
         name = self.__extract_name(soup)
+        description = self.__extract_description(soup)
         publisher = self.__extract_info_field(soup, "Publisher")
         release_date = self.__extract_release_date(soup)
         platforms = self.__extract_os_platforms()
@@ -85,6 +86,7 @@ class AllKeyShopScraper(AbstractScraper):
 
         return GameModel(
             name=name,
+            description=description,
             url=url,
             publisher=publisher,
             release_date=release_date,
@@ -97,6 +99,18 @@ class AllKeyShopScraper(AbstractScraper):
         """Extract game name from the h1 span"""
         tag = soup.select_one("h1 span[data-itemprop='name']")
         return tag.get_text(strip=True) if tag else ""
+
+    def __extract_description(self, soup: BeautifulSoup) -> str:
+        """Extract game description from the About tab"""
+        about_div = soup.find("div", id="about")
+        if not about_div:
+            return ""
+
+        paragraphs = about_div.find_all("p")
+        if not paragraphs:
+            return ""
+
+        return " ".join(p.get_text(strip=True) for p in paragraphs)
 
     def __extract_info_field(self, soup: BeautifulSoup, label: str) -> list[str]:
         """Extract all anchor texts from a game-info-table field by label"""

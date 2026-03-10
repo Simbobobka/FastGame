@@ -5,6 +5,7 @@ class GameModel(BaseModel):
     model_config = ConfigDict(validate_assignment=True)
 
     name: str = ""
+    description: str = ""
     url: HttpUrl | None = None
     publisher: list[str] = []
     release_date: str = ""
