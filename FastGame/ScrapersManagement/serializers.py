@@ -4,6 +4,8 @@ from ScrapersManagement.models.constants import SCRAPING_STATUS
 from ScrapersManagement.models.Source import Source
 
 from .models.GameDetails import GameDetails
+from .models.Platform import Platform
+from .models.Publisher import Publisher
 from .models.RawGamesIds import RawGamesIds
 
 
@@ -55,7 +57,7 @@ class GamesDetailsSerializer(serializers.Serializer):
             )
         return value
 
-    def validate_sscraper(self, value):
+    def validate_scraper(self, value):
         if not Source.objects.filter(name=value).exists():
             raise serializers.ValidationError("Source with this name does not exist.")
         return value
@@ -65,6 +67,21 @@ class GamesDetailsSerializer(serializers.Serializer):
         source = Source.objects.get(name=validated_data["scraper"])
 
         game_details_data = validated_data["game_details"]
+
+        publisher_names = game_details_data.get("publisher", [])
+        platform_names = game_details_data.get("platforms", [])
+
+        Publisher.objects.bulk_create(
+            [Publisher(name=name) for name in publisher_names],
+            ignore_conflicts=True,
+        )
+        publishers = Publisher.objects.filter(name__in=publisher_names)
+
+        Platform.objects.bulk_create(
+            [Platform(name=name) for name in platform_names],
+            ignore_conflicts=True,
+        )
+        platforms = Platform.objects.filter(name__in=platform_names)
 
         game_details = GameDetails.objects.create(
             name=game_details_data["name"],
@@ -76,5 +93,8 @@ class GamesDetailsSerializer(serializers.Serializer):
             source=source,
             raw_games_ids=raw_game_id,
         )
+
+        game_details.publisher.set(publishers)
+        game_details.platforms.set(platforms)
 
         return game_details
