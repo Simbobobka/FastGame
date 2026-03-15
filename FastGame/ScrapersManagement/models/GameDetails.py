@@ -10,8 +10,8 @@ class GameDetails(models.Model):
 
     name = models.CharField(max_length=255)
     description = models.TextField()
-    release_date = models.DateField(null=False, blank=False)
-    price = models.FloatField(null=True, blank=True)
+    release_date = models.DateField(null=True, blank=False)
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     url = models.URLField(null=False, blank=False)
     is_free = models.BooleanField(default=False)
 
