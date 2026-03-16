@@ -22,13 +22,16 @@ class DetailScraperWorker:
     ) -> Optional[dict]:
         """Process single game detail scraping task on a specific tab"""
         game_id = task_data.game_id
+        raw_id = task_data.raw_id
 
         try:
             print(
                 f"[{self.scraper.scraper_name}] Scraping game {game_id} on tab {tab_index}"
             )
 
-            await self.scraper.scrape(game_id=game_id, page_number=tab_index)
+            await self.scraper.scrape(
+                game_id=game_id, page_number=tab_index, raw_id=raw_id
+            )
             print(f"[{self.scraper.scraper_name}] Successfully scraped {game_id}")
         except Exception as e:
             print(f"[{self.scraper.scraper_name}] Error scraping {game_id}: {e}")
@@ -82,6 +85,7 @@ class DetailScraperWorker:
                     print(
                         f"[{self.scraper.scraper_name}] Completed batch: {len(tasks)} tasks processed"
                     )
+                    await asyncio.sleep(2)
                 except Exception as e:
                     print(f"[{self.scraper.scraper_name}] Error processing batch: {e}")
                     traceback.print_exc()
