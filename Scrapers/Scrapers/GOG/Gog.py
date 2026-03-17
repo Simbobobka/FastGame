@@ -36,9 +36,11 @@ class GogScraper(AbstractScraper):
         """Return the scraper's name"""
         return "gog"
 
-    async def scrape(self, game_id: str = None, page_number: int = 0):
+    async def scrape(
+        self, game_id: str = None, page_number: int = 0, raw_id: int = 0
+    ) -> None:
         if game_id:
-            return await self.__scrape_game_details(game_id, page_number)
+            return await self.__scrape_game_details(game_id, page_number, raw_id)
         else:
             print("Starting GOG game ID scraping...")
             await self.__scrape_game_ids()
@@ -86,7 +88,9 @@ class GogScraper(AbstractScraper):
                 print(f"Failed to send data for page {page_number}: {e}")
                 print("Continuing with next page...")
 
-    async def __scrape_game_details(self, game_id: str, page_number: int) -> None:
+    async def __scrape_game_details(
+        self, game_id: str, page_number: int, raw_id: int
+    ) -> None:
         """Scrape game details from GOG game page"""
         await self.client.pages[page_number].goto(self.base_url + f"en/game/{game_id}")
         await self.client.pages[page_number].wait_for_load_state("domcontentloaded")
@@ -97,14 +101,18 @@ class GogScraper(AbstractScraper):
             await self.client.pages[page_number].content()
         )
 
-        await self.send_data(
-            f"{self.config.django_api}/app/game-details/",
-            {
-                "game_details": game_details.model_dump(),
-                "game_id": game_id,
-                "scraper": self.scraper_name,
-            },
-        )
+        try:
+            await self.send_data(
+                f"{self.config.django_api}/app/game-details",
+                {
+                    "game_details": game_details.model_dump(mode="json"),
+                    "raw_id": raw_id,
+                    "scraper": self.scraper_name,
+                },
+            )
+        except ValueError as e:
+            print(f"Failed to save game details for {game_id}: {e}")
+            raise
 
     async def __accept_cookies(self, page: Page):
         """Accept cookies on the page if the prompt appears"""
@@ -177,7 +185,7 @@ class GogScraper(AbstractScraper):
                 if date_span:
                     date_str = date_span.text.strip()
                     date_obj = datetime.strptime(date_str, "%B %d, %Y")
-                    game_details.release_date = date_obj.strftime("%d.%m.%Y")
+                    game_details.release_date = date_obj.strftime("%Y-%m-%d")
 
             elif label and "Company:" in label.text:
                 content_div = row.find(

@@ -79,7 +79,7 @@ DATABASES = {
     }
 }
 
-REDIS_HOST_BASE = os.getenv("REDIS_URL", "redis://redis:6380")
+REDIS_HOST_BASE = os.getenv("REDIS_URL", "redis://redis:6379/0")
 REDIS_QUEUE_URL = os.getenv("REDIS_QUEUE_URL", f"{REDIS_HOST_BASE}")
 REDIS_CACHE_URL = os.getenv("REDIS_CACHE_URL", f"{REDIS_HOST_BASE}")
 REDIS_BROKER_URL = os.getenv("CELERY_BROKER", f"{REDIS_HOST_BASE}")

@@ -35,16 +35,16 @@ class AllKeyShopScraper(AbstractScraper):
         """Return the scraper's name"""
         return "allkeyshop"
 
-    async def scrape(self, game_id: str = None, page_number: int = 0):
+    async def scrape(self, game_id: str = None, page_number: int = 0, raw_id: int = 0):
         if game_id:
-            return await self.__scrape_game_details(game_id, page_number)
+            return await self.__scrape_game_details(game_id, raw_id)
         else:
             await self.__scrape_game_ids()
 
     async def __scrape_game_details(
         self,
         game_id: str,
-        page_number: int,
+        raw_id: int,
     ) -> None:
         """Scrape detailed information for a single game"""
         url = self.base_url + f"blog/en-us/{game_id}"
@@ -55,25 +55,30 @@ class AllKeyShopScraper(AbstractScraper):
 
         if status != 200:
             raise Exception(
-                f"Failed to fetch game details for {game_id}, status code: {status}"
+                f"Failed to fetch game details for {game_id}, status code: {status}, URL: {url}"
             )
 
         game_details = self.__extract_game_details(content, url)
 
-        await self.send_data(
-            f"{self.config.django_api}/app/game-details/",
-            {
-                "game_details": game_details.model_dump(),
-                "game_id": game_id,
-                "scraper": self.scraper_name,
-            },
-        )
+        try:
+            await self.send_data(
+                f"{self.config.django_api}/app/game-details",
+                {
+                    "game_details": game_details.model_dump(mode="json"),
+                    "raw_id": raw_id,
+                    "scraper": self.scraper_name,
+                },
+            )
+        except ValueError as e:
+            print(f"Failed to save game details for {game_id}: {e}")
+            raise
 
     def __extract_game_details(self, html_content: str, url: str) -> GameModel:
         """Extract game details from HTML content"""
         soup = BeautifulSoup(html_content, "html.parser")
 
         name = self.__extract_name(soup)
+        description = self.__extract_description(soup)
         publisher = self.__extract_info_field(soup, "Publisher")
         release_date = self.__extract_release_date(soup)
         platforms = self.__extract_os_platforms()
@@ -81,6 +86,7 @@ class AllKeyShopScraper(AbstractScraper):
 
         return GameModel(
             name=name,
+            description=description,
             url=url,
             publisher=publisher,
             release_date=release_date,
@@ -93,6 +99,18 @@ class AllKeyShopScraper(AbstractScraper):
         """Extract game name from the h1 span"""
         tag = soup.select_one("h1 span[data-itemprop='name']")
         return tag.get_text(strip=True) if tag else ""
+
+    def __extract_description(self, soup: BeautifulSoup) -> str:
+        """Extract game description from the About tab"""
+        about_div = soup.find("div", id="about")
+        if not about_div:
+            return ""
+
+        paragraphs = about_div.find_all("p")
+        if not paragraphs:
+            return ""
+
+        return " ".join(p.get_text(strip=True) for p in paragraphs)
 
     def __extract_info_field(self, soup: BeautifulSoup, label: str) -> list[str]:
         """Extract all anchor texts from a game-info-table field by label"""
@@ -112,7 +130,7 @@ class AllKeyShopScraper(AbstractScraper):
         if not raw:
             return ""
         try:
-            return datetime.strptime(raw, "%d %B %Y").strftime("%d.%m.%Y")
+            return datetime.strptime(raw, "%d %B %Y").strftime("%Y-%m-%d")
         except ValueError:
             return raw
 

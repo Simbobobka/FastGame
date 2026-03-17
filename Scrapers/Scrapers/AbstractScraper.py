@@ -35,7 +35,9 @@ class AbstractScraper(ABC):
         pass
 
     @abstractmethod
-    async def scrape(self, game_id: str = None, page_number: int = 0):
+    async def scrape(
+        self, game_id: str = None, page_number: int = 0, raw_id: int = 0
+    ) -> None:
         """Main scraping logic - must be implemented by child classes"""
         pass
 
