@@ -36,6 +36,19 @@ class DetailScraperWorker:
         except Exception as e:
             print(f"[{self.scraper.scraper_name}] Error scraping {game_id}: {e}")
             traceback.print_exc()
+            task_data.attempt += 1
+            task_data.error = str(e)
+
+            if task_data.attempt >= task_data.max_retries:
+                await self.scraper.redis_client.push_dead_letter_task(
+                    self.scraper.scraper_name,
+                    task_data.model_dump_json(),
+                )
+                print(
+                    f"[{self.scraper.scraper_name}] Max retries reached for {game_id}"
+                )
+                return None
+
             await self._requeue_failed_task(task_data)
 
     async def run(self):
@@ -52,6 +65,14 @@ class DetailScraperWorker:
         try:
             while True:
                 try:
+                    state = await self.scraper.redis_client.get_control_state(
+                        self.scraper.scraper_name,
+                        "details",
+                    )
+                    if state == "stop":
+                        await sleep(self.polling_interval)
+                        continue
+
                     queue_length = await self.scraper.redis_client.get_queue_length(
                         queue_key
                     )

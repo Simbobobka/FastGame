@@ -1,11 +1,14 @@
+from asyncio import sleep
+
 from Scrapers.AbstractScraper import AbstractScraper
 
 
 class IdsScraperWorker:
     """Generic worker for scraping game IDs (works with any scraper)"""
 
-    def __init__(self, scraper: AbstractScraper):
+    def __init__(self, scraper: AbstractScraper, polling_interval: int = 5):
         self.scraper = scraper
+        self.polling_interval = polling_interval
 
     async def run(self):
         """Execute ID scraping workflow"""
@@ -14,13 +17,30 @@ class IdsScraperWorker:
             await self.scraper.client.initiate()
 
         try:
-            await self.scraper.scrape()
-            print(f"{self.scraper.scraper_name} ID scraping completed successfully")
+            while True:
+                state = await self.scraper.redis_client.get_control_state(
+                    self.scraper.scraper_name,
+                    "ids",
+                )
+                if state == "stop":
+                    await sleep(self.polling_interval)
+                    continue
+
+                command = await self.scraper.redis_client.pop_ids_worker_command(
+                    self.scraper.scraper_name
+                )
+                if not command:
+                    await sleep(self.polling_interval)
+                    continue
+
+                await self.scraper.scrape()
+                print(f"{self.scraper.scraper_name} ID scraping completed successfully")
         except Exception as e:
             print(f"Error in IdsScraperWorker: {e}")
             import traceback
 
             traceback.print_exc()
         finally:
-            await self.scraper.client.close_connection()
-            print(f"{self.scraper.scraper_name} ID scraper worker stopped")
+            if self.scraper.client:
+                await self.scraper.client.close_connection()
+            print(f"{self.scraper.scraper_name} IDs control worker stopped")

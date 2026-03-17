@@ -6,3 +6,6 @@ class DetailsScrapingTask(BaseModel):
     raw_id: int
     scraper_name: str
     genre: str
+    attempt: int = 0
+    max_retries: int = 3
+    error: str = ""
