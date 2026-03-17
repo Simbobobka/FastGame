@@ -147,6 +147,14 @@ class SteamScraper(AbstractScraper):
             platforms=platforms,
             price=price,
             is_free=price == 0.0,
+          return GameModel(
+            name=self.__extract_name(soup),
+            url=url,
+            publisher=self.__extract_publisher(soup),
+            release_date=self.__extract_release_date(soup),
+            platforms=self.__extract_os_platforms(soup),
+            price=price,
+            is_free=price == 0.0,
         )
 
     def __extract_name(self, soup: BeautifulSoup) -> str:
