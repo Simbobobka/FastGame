@@ -1,8 +1,117 @@
 from celery import shared_task
+from django.utils import timezone
 
+from ScrapersManagement.Entities.DetailsScrapingTask import DetailsScrapingTask
+from ScrapersManagement.Services.QueueService.RedisQueueService import RedisQueueService
+
+from .models.constants import SCRAPING_STATUS
 from .models.RawGamesIds import RawGamesIds
+from .models.Source import Source
 
 
 @shared_task
-def run_details_scraper():
-    pass
+def set_details_scraper_state(source_id: int, enabled: bool) -> str:
+    source = Source.objects.get(id=source_id)
+    source.details_scraper_enabled = enabled
+    source.save(update_fields=["details_scraper_enabled", "updated_at"])
+
+    RedisQueueService().set_control_state(
+        source.name,
+        "details",
+        "start" if enabled else "stop",
+    )
+    return source.name
+
+
+@shared_task
+def set_ids_scraper_state(source_id: int, enabled: bool) -> str:
+    source = Source.objects.get(id=source_id)
+    source.ids_scraper_enabled = enabled
+    source.save(update_fields=["ids_scraper_enabled", "updated_at"])
+
+    RedisQueueService().set_control_state(
+        source.name,
+        "ids",
+        "start" if enabled else "stop",
+    )
+    return source.name
+
+
+def _enqueue_raw_ids(queryset) -> int:
+    queue_service = RedisQueueService()
+    queued_ids = []
+    now = timezone.now()
+
+    for raw_game_id in queryset.select_related("source"):
+        if not raw_game_id.source.details_scraper_enabled:
+            continue
+
+        task_data = DetailsScrapingTask(
+            game_id=raw_game_id.game_id,
+            raw_id=raw_game_id.id,
+            scraper_name=raw_game_id.source.name,
+            genre=raw_game_id.genre,
+            attempt=raw_game_id.retry_count,
+            max_retries=raw_game_id.source.details_max_retries,
+        )
+        queue_service.push_task(task_data)
+        queued_ids.append(raw_game_id.id)
+
+    if queued_ids:
+        RawGamesIds.objects.filter(id__in=queued_ids).update(
+            status=SCRAPING_STATUS.RETRY_WAITING,
+            last_error="",
+            last_attempt_at=now,
+        )
+
+    return len(queued_ids)
+
+
+@shared_task
+def enqueue_raw_game_ids(raw_game_ids_ids: list[int]) -> int:
+    queryset = RawGamesIds.objects.filter(id__in=raw_game_ids_ids).exclude(
+        status=SCRAPING_STATUS.SCRAPED
+    )
+    return _enqueue_raw_ids(queryset)
+
+
+@shared_task
+def retry_failed_details(
+    source_id: int | None = None, raw_game_ids_ids: list[int] | None = None
+) -> int:
+    queryset = RawGamesIds.objects.filter(status=SCRAPING_STATUS.FAILED)
+
+    if source_id is not None:
+        queryset = queryset.filter(source_id=source_id)
+
+    if raw_game_ids_ids:
+        queryset = queryset.filter(id__in=raw_game_ids_ids)
+
+    return _enqueue_raw_ids(queryset)
+
+
+@shared_task
+def trigger_ids_scraper(source_id: int) -> str:
+    source = Source.objects.get(id=source_id)
+    if not source.ids_scraper_enabled:
+        return source.name
+
+    RedisQueueService().enqueue_ids_run_command(source.name)
+    return source.name
+
+
+@shared_task
+def sync_dead_letter_queue(source_id: int, limit: int = 100) -> int:
+    source = Source.objects.get(id=source_id)
+    queue_service = RedisQueueService()
+    failed_tasks = queue_service.pop_dead_letter_tasks(source.name, limit)
+
+    for failed_task in failed_tasks:
+        RawGamesIds.objects.filter(id=failed_task["raw_id"]).update(
+            status=SCRAPING_STATUS.FAILED,
+            retry_count=failed_task.get("attempt", 0),
+            last_error=failed_task.get("error", ""),
+            last_attempt_at=timezone.now(),
+        )
+
+    return len(failed_tasks)

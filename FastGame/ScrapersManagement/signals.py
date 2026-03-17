@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING
 
 from django.db.models.signals import post_save
 from django.dispatch import Signal, receiver
+from django.utils import timezone
 
 from ScrapersManagement.Entities.DetailsScrapingTask import DetailsScrapingTask
 from ScrapersManagement.models.constants import SCRAPING_STATUS
@@ -25,15 +26,29 @@ def raw_games_ids_bulk_saved_handler(sender, instances: list["RawGamesIds"], **k
 
     try:
         queue_service = RedisQueueService()
+        queued_ids = []
 
         for instance in instances:
+            if not instance.source.details_scraper_enabled:
+                continue
+
             task_data = DetailsScrapingTask(
                 game_id=instance.game_id,
                 scraper_name=instance.source.name,
                 genre=instance.genre,
                 raw_id=instance.id,
+                attempt=instance.retry_count,
+                max_retries=instance.source.details_max_retries,
             )
             queue_service.push_task(task_data)
+            queued_ids.append(instance.id)
+
+        if queued_ids:
+            sender.objects.filter(id__in=queued_ids).update(
+                status=SCRAPING_STATUS.IN_PROGRESS,
+                last_error="",
+                last_attempt_at=timezone.now(),
+            )
     except Exception as e:
         print(f"Failed to push task to Redis queue: {e}")
 
@@ -49,4 +64,5 @@ def game_details_saved_handler(sender, instance: "GameDetails", **kwargs):
         )
 
     instance.raw_games_ids.status = SCRAPING_STATUS.SCRAPED
+    instance.raw_games_ids.last_error = ""
     instance.raw_games_ids.save()
