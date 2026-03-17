@@ -8,9 +8,9 @@ from bs4 import BeautifulSoup
 from Scrapers.AbstractScraper import AbstractScraper
 from Scrapers.HttpRequestClient import HttpRequestClient
 from Scrapers.RedisClient import RedisScraperClient
+from Scrapers.Scrapers.Steam.Enums.OsNormalization import OS_NORMALIZATION_MAP
 from Scrapers.settings import ScrapersConfig, get_config
 from Scrapers.Steam.Enums.Genres import Genres
-from Scrapers.Steam.Enums.Normalization import OS_NORMALIZATION_MAP
 from Scrapers.Steam.QueryParamethers import SteamQueryParams
 from Scrapers.utils.GameModel import GameModel
 
@@ -132,19 +132,14 @@ class SteamScraper(AbstractScraper):
     def __extract_game_details(self, content: str, url: str) -> GameModel:
         """Extract game details from game page content"""
         soup = BeautifulSoup(content, "html.parser")
-
-        name = self.__extract_name(soup)
-        publisher = self.__extract_publisher(soup)
-        release_date = self.__extract_release_date(soup)
-        platforms = self.__extract_os_platforms(soup)
         price = self.__extract_price(soup)
 
         return GameModel(
-            name=name,
+            name=self.__extract_name(soup),
             url=url,
-            publisher=publisher,
-            release_date=release_date,
-            platforms=platforms,
+            publisher=self.__extract_publisher(soup),
+            release_date=self.__extract_release_date(soup),
+            platforms=self.__extract_os_platforms(soup),
             price=price,
             is_free=price == 0.0,
           return GameModel(
@@ -165,15 +160,15 @@ class SteamScraper(AbstractScraper):
     def __extract_publisher(self, soup: BeautifulSoup) -> list[str]:
         """Extract game publishers"""
         label = soup.find(string=re.compile(r"Видавець:|Publisher:"))
-        if label:
-            subtitle_div = label.parent
+        if not label:
+            return []
+        subtitle_div = label.parent
 
-            summary_div = subtitle_div.find_next_sibling("div", class_="summary column")
+        summary_div = subtitle_div.find_next_sibling("div", class_="summary column")
 
-            if summary_div:
-                publishers = [a.get_text(strip=True) for a in summary_div.find_all("a")]
-                return publishers
-        return []
+        if summary_div:
+            publishers = [a.get_text(strip=True) for a in summary_div.find_all("a")]
+        return publishers
 
     def __extract_release_date(self, soup: BeautifulSoup) -> str:
         """Extract and format release date as dd.mm.yyyy"""
@@ -195,20 +190,20 @@ class SteamScraper(AbstractScraper):
         """Extract list of os platforms game"""
         raw = soup.find_all("div", class_="sysreq_tab")
         platforms = []
-        if raw:
-            raw_os = [i.get("data-os").title() for i in raw]
-            for os in raw_os:
-                normalized_os = OS_NORMALIZATION_MAP.get(os, os)
-                platforms.append(normalized_os)
-            return platforms
-        return []
+        if not raw:
+            return []
+        raw_os = [i.get("data-os").title() for i in raw]
+        for os in raw_os:
+            normalized_os = OS_NORMALIZATION_MAP.get(os, os)
+            platforms.append(normalized_os)
+        return platforms
 
     def __extract_price(self, soup: BeautifulSoup) -> float:
         """Extract prive from metadata"""
         raw = soup.find("meta", itemprop="price")
-        if raw:
-            return float(raw.get("content"))
-        return 0.0
+        if not raw:
+            return 0.0
+        return float(raw.get("content"))
 
     def __scrape_pages_quantity(self, content) -> int:
         """Scrape quantity of pages from Steam homepage"""
