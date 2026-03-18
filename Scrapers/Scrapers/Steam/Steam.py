@@ -8,9 +8,9 @@ from bs4 import BeautifulSoup
 from Scrapers.AbstractScraper import AbstractScraper
 from Scrapers.HttpRequestClient import HttpRequestClient
 from Scrapers.RedisClient import RedisScraperClient
-from Scrapers.Scrapers.Steam.Enums.OsNormalization import OS_NORMALIZATION_MAP
 from Scrapers.settings import ScrapersConfig, get_config
 from Scrapers.Steam.Enums.Genres import Genres
+from Scrapers.Steam.Enums.OsNormalization import OS_NORMALIZATION_MAP
 from Scrapers.Steam.QueryParamethers import SteamQueryParams
 from Scrapers.utils.GameModel import GameModel
 
@@ -38,10 +38,10 @@ class SteamScraper(AbstractScraper):
         """Return the scraper's name"""
         return "steam"
 
-    async def scrape(self, game_id: str = None, page_number: int = 0):
+    async def scrape(self, game_id: str = None, page_number: int = 0, raw_id: int = 0):
         """Main enter point in scraper"""
         if game_id:
-            return await self.__scrape_game_details(game_id, page_number)
+            return await self.__scrape_game_details(game_id, raw_id)
         else:
             print("Starting STEAM game ID scraping...")
             await self.__scrape_game_ids()
@@ -107,7 +107,7 @@ class SteamScraper(AbstractScraper):
 
             await sleep(1.5)
 
-    async def __scrape_game_details(self, game_id: str, page_number: int) -> None:
+    async def __scrape_game_details(self, game_id: str, raw_id: int) -> None:
         """Scrape game details from Steam game page"""
         url = self.base_url + f"app/{game_id}/"
 
@@ -119,15 +119,20 @@ class SteamScraper(AbstractScraper):
             )
 
         game_details = self.__extract_game_details(content, url)
-        print(game_details)
-        await self.send_data(
-            f"{self.config.django_api}/app/game-details/",
-            {
-                "game_details": game_details.model_dump(mode="json"),
-                "game_id": game_id,
-                "scraper": self.scraper_name,
-            },
-        )
+
+        try:
+            await self.send_data(
+                f"{self.config.django_api}/app/game-details",
+                {
+                    "game_details": game_details.model_dump(mode="json"),
+                    "raw_id": raw_id,
+                    "scraper": self.scraper_name,
+                },
+            )
+
+        except ValueError as e:
+            print(f"Failed to save game details for {game_id}: {e}")
+            raise
 
     def __extract_game_details(self, content: str, url: str) -> GameModel:
         """Extract game details from game page content"""
@@ -154,13 +159,14 @@ class SteamScraper(AbstractScraper):
         label = soup.find(string=re.compile(r"Видавець:|Publisher:"))
         if not label:
             return []
-        subtitle_div = label.parent
 
+        subtitle_div = label.parent
         summary_div = subtitle_div.find_next_sibling("div", class_="summary column")
 
-        if summary_div:
-            publishers = [a.get_text(strip=True) for a in summary_div.find_all("a")]
-        return publishers
+        if not summary_div:
+            return []
+
+        return [a.get_text(strip=True) for a in summary_div.find_all("a")]
 
     def __extract_release_date(self, soup: BeautifulSoup) -> str:
         """Extract and format release date as dd.mm.yyyy"""
@@ -168,7 +174,7 @@ class SteamScraper(AbstractScraper):
         date_div = soup.find("div", class_="date")
 
         if not date_div:
-            return ""
+            return None
 
         raw = date_div.get_text(strip=True)
 
@@ -176,7 +182,7 @@ class SteamScraper(AbstractScraper):
             return datetime.strptime(raw, "%d %b, %Y").strftime("%Y-%m-%d")
 
         except ValueError:
-            return raw
+            return None
 
     def __extract_os_platforms(self, soup: BeautifulSoup) -> list[str]:
         """Extract list of os platforms game"""
