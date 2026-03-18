@@ -119,7 +119,6 @@ class SteamScraper(AbstractScraper):
             )
 
         game_details = self.__extract_game_details(content, url)
-
         try:
             await self.send_data(
                 f"{self.config.django_api}/app/game-details",
@@ -145,6 +144,7 @@ class SteamScraper(AbstractScraper):
             publisher=self.__extract_publisher(soup),
             release_date=self.__extract_release_date(soup),
             platforms=self.__extract_os_platforms(soup),
+            description=self.__extract_description(soup),
             price=price,
             is_free=price == 0.0,
         )
@@ -206,3 +206,12 @@ class SteamScraper(AbstractScraper):
     def __scrape_pages_quantity(self, content) -> int:
         """Scrape quantity of pages from Steam homepage"""
         return math.ceil(content["match_count"] / 50)
+
+    def __extract_description(self, soup: BeautifulSoup) -> str:
+        """Scrape description of game"""
+        raw_text = soup.find("div", class_="game_area_description")
+
+        if not raw_text:
+            return ""
+
+        return raw_text.get_text(separator=" ", strip=True)
