@@ -51,9 +51,9 @@ class SteamScraper(AbstractScraper):
 
         url = self.base_url + "saleaction/ajaxgetsaledynamicappquery?"
         params = SteamQueryParams()
-
+        print(params)
         status, content = await self.http_client.get_request(
-            url, params=params.model_dump(), json=True
+            url, params=params.to_params(), json=True
         )
 
         if status != 200:
@@ -66,7 +66,7 @@ class SteamScraper(AbstractScraper):
             game_ids_per_page = tuple(content["appids"])
 
             status, content = await self.http_client.get_request(
-                url, params=params.model_dump(by_alias=True), json=True
+                url, params=params.to_params(), json=True
             )
 
             if status != 200:
@@ -168,7 +168,7 @@ class SteamScraper(AbstractScraper):
 
         return [a.get_text(strip=True) for a in summary_div.find_all("a")]
 
-    def __extract_release_date(self, soup: BeautifulSoup) -> str:
+    def __extract_release_date(self, soup: BeautifulSoup) -> str | None:
         """Extract and format release date as dd.mm.yyyy"""
 
         date_div = soup.find("div", class_="date")
@@ -201,7 +201,16 @@ class SteamScraper(AbstractScraper):
         raw = soup.find("meta", itemprop="price")
         if not raw:
             return 0.0
-        return float(raw.get("content"))
+
+        price_str = raw.get("content", "0.0")
+
+        try:
+            clean_price = "".join(price_str.split())
+            clean_price = clean_price.replace(",", ".")
+
+            return float(clean_price)
+        except (ValueError, TypeError):
+            return 0.0
 
     def __scrape_pages_quantity(self, content) -> int:
         """Scrape quantity of pages from Steam homepage"""
