@@ -11,6 +11,7 @@ from .models.Source import Source
 
 @shared_task
 def set_details_scraper_state(source_id: int, enabled: bool) -> str:
+    """Enable or disable the details scraper for a source by updating the database and setting control state in Redis."""
     source = Source.objects.get(id=source_id)
     source.details_scraper_enabled = enabled
     source.save(update_fields=["details_scraper_enabled", "updated_at"])
@@ -25,6 +26,7 @@ def set_details_scraper_state(source_id: int, enabled: bool) -> str:
 
 @shared_task
 def set_ids_scraper_state(source_id: int, enabled: bool) -> str:
+    """Enable or disable the IDs scraper for a source by updating the database and setting control state in Redis."""
     source = Source.objects.get(id=source_id)
     source.ids_scraper_enabled = enabled
     source.save(update_fields=["ids_scraper_enabled", "updated_at"])
@@ -69,6 +71,7 @@ def _enqueue_raw_ids(queryset) -> int:
 
 @shared_task
 def enqueue_raw_game_ids(raw_game_ids_ids: list[int]) -> int:
+    """Enqueue specific raw game IDs for detail scraping by pushing tasks to Redis. Only enqueues IDs that are not already scraped."""
     queryset = RawGamesIds.objects.filter(id__in=raw_game_ids_ids).exclude(
         status=SCRAPING_STATUS.SCRAPED
     )
@@ -79,6 +82,7 @@ def enqueue_raw_game_ids(raw_game_ids_ids: list[int]) -> int:
 def retry_failed_details(
     source_id: int | None = None, raw_game_ids_ids: list[int] | None = None
 ) -> int:
+    """Retry failed detail scraping tasks by re-queuing them in Redis. Can filter by source and/or specific raw game IDs."""
     queryset = RawGamesIds.objects.filter(status=SCRAPING_STATUS.FAILED)
 
     if source_id is not None:
@@ -92,6 +96,7 @@ def retry_failed_details(
 
 @shared_task
 def trigger_ids_scraper(source_id: int) -> str:
+    """Manually trigger the IDs scraper for a source by pushing a command to Redis."""
     source = Source.objects.get(id=source_id)
     if not source.ids_scraper_enabled:
         return source.name
@@ -102,6 +107,7 @@ def trigger_ids_scraper(source_id: int) -> str:
 
 @shared_task
 def sync_dead_letter_queue(source_id: int, limit: int = 100) -> int:
+    """Sync failed tasks from Redis dead letter queue back to the database for analysis and potential retries."""
     source = Source.objects.get(id=source_id)
     queue_service = RedisQueueService()
     failed_tasks = queue_service.pop_dead_letter_tasks(source.name, limit)

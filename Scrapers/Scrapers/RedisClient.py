@@ -71,7 +71,7 @@ class RedisScraperClient:
     async def get_control_state(self, scraper_name: str, target: str) -> str:
         key = f"scraping:control:{scraper_name}:{target}"
         state = await self._redis.get(key)
-        return state or "start"
+        return state or "stop"
 
     async def pop_ids_worker_command(self, scraper_name: str) -> Optional[dict]:
         key = f"scraping:commands:{scraper_name}:ids"
