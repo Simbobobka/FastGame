@@ -51,19 +51,11 @@ class SteamScraper(AbstractScraper):
 
         url = self.base_url + "saleaction/ajaxgetsaledynamicappquery?"
         params = SteamQueryParams()
-        print(params)
-        status, content = await self.http_client.get_request(
-            url, params=params.to_params(), json=True
-        )
-
-        if status != 200:
-            raise Exception(f"Failed to fetch game IDs, status code: {status}")
 
         page_number = 1
         total_pages = 1
 
         while page_number <= total_pages:
-            game_ids_per_page = tuple(content["appids"])
 
             status, content = await self.http_client.get_request(
                 url, params=params.to_params(), json=True
