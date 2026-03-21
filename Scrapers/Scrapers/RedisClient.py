@@ -18,7 +18,7 @@ class RedisScraperClient:
             host=config.host,
             port=config.port,
             db=config.db,
-            max_connections=2,
+            max_connections=20,
             decode_responses=True,
         )
         self._redis: Optional[Redis] = None
