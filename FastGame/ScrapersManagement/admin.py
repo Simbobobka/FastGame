@@ -48,6 +48,8 @@ class RawGamesIdsAdmin(admin.ModelAdmin):
         "status",
         "retry_count",
         "last_attempt_at",
+        "created_at",
+        "updated_at",
     )
     list_filter = ("source", "status", "genre")
     search_fields = ("game_id", "genre")
@@ -65,6 +67,8 @@ class GameDetailsAdmin(admin.ModelAdmin):
         "is_free",
         "get_publishers",
         "url",
+        "created_at",
+        "updated_at",
     )
     list_filter = ("source", "is_free")
     search_fields = ("name", "url")
