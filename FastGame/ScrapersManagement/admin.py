@@ -8,7 +8,6 @@ from .actions import (
     queue_selected_raw_ids,
     retry_selected_failed,
     sync_dead_letters,
-    trigger_ids_scraper_now,
 )
 from .models.GameDetails import GameDetails
 from .models.Platform import Platform
@@ -35,7 +34,6 @@ class SourceAdmin(admin.ModelAdmin):
         disable_details_scraper,
         enable_ids_scraper,
         disable_ids_scraper,
-        trigger_ids_scraper_now,
         sync_dead_letters,
     )
 

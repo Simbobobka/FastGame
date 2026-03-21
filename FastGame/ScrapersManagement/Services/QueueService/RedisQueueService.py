@@ -49,10 +49,6 @@ class RedisQueueService:
         key = self.get_control_key(scraper_name, target)
         self.redis_client.set(key, state)
 
-    def enqueue_ids_run_command(self, scraper_name: str):
-        queue_key = self.get_ids_command_queue_key(scraper_name)
-        self.redis_client.lpush(queue_key, json.dumps({"action": "run"}))
-
     def check_queue_length(self, queue_key: str) -> int:
         """Check the number of tasks in the specified Redis queue"""
         return self.redis_client.llen(queue_key)

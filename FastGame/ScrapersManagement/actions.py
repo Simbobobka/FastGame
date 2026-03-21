@@ -6,7 +6,6 @@ from .tasks import (
     set_details_scraper_state,
     set_ids_scraper_state,
     sync_dead_letter_queue,
-    trigger_ids_scraper,
 )
 
 
@@ -32,12 +31,6 @@ def enable_ids_scraper(modeladmin, request, queryset):
 def disable_ids_scraper(modeladmin, request, queryset):
     for source in queryset:
         set_ids_scraper_state.delay(source.id, False)
-
-
-@admin.action(description="Trigger IDs scraper now")
-def trigger_ids_scraper_now(modeladmin, request, queryset):
-    for source in queryset:
-        trigger_ids_scraper.delay(source.id)
 
 
 @admin.action(description="Sync dead-letter queue")

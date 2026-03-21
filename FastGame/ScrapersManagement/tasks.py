@@ -95,17 +95,6 @@ def retry_failed_details(
 
 
 @shared_task
-def trigger_ids_scraper(source_id: int) -> str:
-    """Manually trigger the IDs scraper for a source by pushing a command to Redis."""
-    source = Source.objects.get(id=source_id)
-    if not source.ids_scraper_enabled:
-        return source.name
-
-    RedisQueueService().enqueue_ids_run_command(source.name)
-    return source.name
-
-
-@shared_task
 def sync_dead_letter_queue(source_id: int, limit: int = 100) -> int:
     """Sync failed tasks from Redis dead letter queue back to the database for analysis and potential retries."""
     source = Source.objects.get(id=source_id)
