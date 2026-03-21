@@ -23,13 +23,9 @@ class IdsScraperWorker:
                     "ids",
                 )
                 if state == "stop":
-                    await sleep(self.polling_interval)
-                    continue
-
-                command = await self.scraper.redis_client.pop_ids_worker_command(
-                    self.scraper.scraper_name
-                )
-                if not command:
+                    print(
+                        f"{self.scraper.scraper_name} IDs scraping is paused. Waiting for 'start' command..."
+                    )
                     await sleep(self.polling_interval)
                     continue
 
