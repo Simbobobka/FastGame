@@ -1,6 +1,6 @@
 [tool.ruff]
 lint.select = ["E", "F", "I", "B"]
-lint.ignore = ["E501","F401"]
+lint.ignore = ["E501","F401","E741"]
 lint.exclude = [
     "migrations",
     "manage.py",
