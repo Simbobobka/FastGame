@@ -41,6 +41,7 @@ def set_ids_scraper_state(source_id: int, enabled: bool) -> str:
 
 def _enqueue_raw_ids(queryset) -> int:
     queue_service = RedisQueueService()
+    tasks = []
     queued_ids = []
     now = timezone.now()
 
@@ -48,16 +49,19 @@ def _enqueue_raw_ids(queryset) -> int:
         if not raw_game_id.source.details_scraper_enabled:
             continue
 
-        task_data = DetailsScrapingTask(
-            game_id=raw_game_id.game_id,
-            raw_id=raw_game_id.id,
-            scraper_name=raw_game_id.source.name,
-            genre=raw_game_id.genre,
-            attempt=raw_game_id.retry_count,
-            max_retries=raw_game_id.source.details_max_retries,
+        tasks.append(
+            DetailsScrapingTask(
+                game_id=raw_game_id.game_id,
+                raw_id=raw_game_id.id,
+                scraper_name=raw_game_id.source.name,
+                genre=raw_game_id.genre,
+                attempt=raw_game_id.retry_count,
+                max_retries=raw_game_id.source.details_max_retries,
+            )
         )
-        queue_service.push_task(task_data)
         queued_ids.append(raw_game_id.id)
+
+    queue_service.push_tasks(tasks)
 
     if queued_ids:
         RawGamesIds.objects.filter(id__in=queued_ids).update(

@@ -27,6 +27,7 @@ def raw_games_ids_bulk_saved_handler(sender, instances: list["RawGamesIds"], **k
 
     try:
         queue_service = RedisQueueService()
+        tasks = []
         queued_ids = []
 
         source_ids = {instance.source_id for instance in instances}
@@ -39,16 +40,19 @@ def raw_games_ids_bulk_saved_handler(sender, instances: list["RawGamesIds"], **k
             if not source.details_scraper_enabled:
                 continue
 
-            task_data = DetailsScrapingTask(
-                game_id=instance.game_id,
-                scraper_name=source.name,
-                genre=instance.genre,
-                raw_id=instance.id,
-                attempt=instance.retry_count,
-                max_retries=source.details_max_retries,
+            tasks.append(
+                DetailsScrapingTask(
+                    game_id=instance.game_id,
+                    scraper_name=source.name,
+                    genre=instance.genre,
+                    raw_id=instance.id,
+                    attempt=instance.retry_count,
+                    max_retries=source.details_max_retries,
+                )
             )
-            queue_service.push_task(task_data)
             queued_ids.append(instance.id)
+
+        queue_service.push_tasks(tasks)
 
         if queued_ids:
             sender.objects.filter(id__in=queued_ids).update(

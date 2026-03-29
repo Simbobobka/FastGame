@@ -29,6 +29,16 @@ class RedisQueueService:
         queue_key = self.get_details_queue_key(task_data.scraper_name)
         self.redis_client.lpush(queue_key, task_data.model_dump_json())
 
+    def push_tasks(self, tasks: list[DetailsScrapingTask]):
+        """Push multiple tasks to Redis queues using a pipeline to avoid N round trips"""
+        if not tasks:
+            return
+        with self.redis_client.pipeline() as pipe:
+            for task in tasks:
+                queue_key = self.get_details_queue_key(task.scraper_name)
+                pipe.lpush(queue_key, task.model_dump_json())
+            pipe.execute()
+
     def push_dead_letter_task(self, task_data: DetailsScrapingTask):
         queue_key = self.get_dead_letter_queue_key(task_data.scraper_name)
         self.redis_client.lpush(queue_key, task_data.model_dump_json())
