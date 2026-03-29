@@ -31,7 +31,7 @@ class IdsScraperWorker:
 
                 await self.scraper.scrape()
                 await self.scraper.redis_client.set_control_state(
-                    self.scraper.scraper_name, "ids", "completed"
+                    self.scraper.scraper_name, "ids", "stop"
                 )
                 print(f"{self.scraper.scraper_name} ID scraping completed successfully")
         except Exception as e:
