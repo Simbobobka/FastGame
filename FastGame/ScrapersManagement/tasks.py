@@ -39,7 +39,7 @@ def set_ids_scraper_state(source_id: int, enabled: bool) -> str:
     return source.name
 
 
-def _enqueue_raw_ids(queryset) -> int:
+def _enqueue_raw_ids(queryset, status: str) -> int:
     queue_service = RedisQueueService()
     tasks = []
     queued_ids = []
@@ -65,7 +65,7 @@ def _enqueue_raw_ids(queryset) -> int:
 
     if queued_ids:
         RawGamesIds.objects.filter(id__in=queued_ids).update(
-            status=SCRAPING_STATUS.RETRY_WAITING,
+            status=status,
             last_error="",
             last_attempt_at=now,
         )
@@ -79,7 +79,7 @@ def enqueue_raw_game_ids(raw_game_ids_ids: list[int]) -> int:
     queryset = RawGamesIds.objects.filter(id__in=raw_game_ids_ids).exclude(
         status=SCRAPING_STATUS.SCRAPED
     )
-    return _enqueue_raw_ids(queryset)
+    return _enqueue_raw_ids(queryset, status=SCRAPING_STATUS.IN_PROGRESS)
 
 
 @shared_task
@@ -95,7 +95,7 @@ def retry_failed_details(
     if raw_game_ids_ids:
         queryset = queryset.filter(id__in=raw_game_ids_ids)
 
-    return _enqueue_raw_ids(queryset)
+    return _enqueue_raw_ids(queryset, status=SCRAPING_STATUS.RETRY_WAITING)
 
 
 @shared_task
@@ -105,12 +105,20 @@ def sync_dead_letter_queue(source_id: int, limit: int = 100) -> int:
     queue_service = RedisQueueService()
     failed_tasks = queue_service.pop_dead_letter_tasks(source.name, limit)
 
-    for failed_task in failed_tasks:
-        RawGamesIds.objects.filter(id=failed_task["raw_id"]).update(
-            status=SCRAPING_STATUS.FAILED,
-            retry_count=failed_task.get("attempt", 0),
-            last_error=failed_task.get("error", ""),
-            last_attempt_at=timezone.now(),
+    if failed_tasks:
+        now = timezone.now()
+        RawGamesIds.objects.bulk_update(
+            [
+                RawGamesIds(
+                    id=task["raw_id"],
+                    status=SCRAPING_STATUS.FAILED,
+                    retry_count=task.get("attempt", 0),
+                    last_error=task.get("error", ""),
+                    last_attempt_at=now,
+                )
+                for task in failed_tasks
+            ],
+            fields=["status", "retry_count", "last_error", "last_attempt_at"],
         )
 
     return len(failed_tasks)
