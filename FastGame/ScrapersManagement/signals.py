@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from ScrapersManagement.Entities.DetailsScrapingTask import DetailsScrapingTask
 from ScrapersManagement.models.constants import SCRAPING_STATUS
+from ScrapersManagement.models.Source import Source
 from ScrapersManagement.Services.QueueService.RedisQueueService import RedisQueueService
 
 if TYPE_CHECKING:
@@ -28,17 +29,23 @@ def raw_games_ids_bulk_saved_handler(sender, instances: list["RawGamesIds"], **k
         queue_service = RedisQueueService()
         queued_ids = []
 
+        source_ids = {instance.source_id for instance in instances}
+        sources = {
+            source.id: source for source in Source.objects.filter(id__in=source_ids)
+        }
+
         for instance in instances:
-            if not instance.source.details_scraper_enabled:
+            source = sources[instance.source_id]
+            if not source.details_scraper_enabled:
                 continue
 
             task_data = DetailsScrapingTask(
                 game_id=instance.game_id,
-                scraper_name=instance.source.name,
+                scraper_name=source.name,
                 genre=instance.genre,
                 raw_id=instance.id,
                 attempt=instance.retry_count,
-                max_retries=instance.source.details_max_retries,
+                max_retries=source.details_max_retries,
             )
             queue_service.push_task(task_data)
             queued_ids.append(instance.id)
