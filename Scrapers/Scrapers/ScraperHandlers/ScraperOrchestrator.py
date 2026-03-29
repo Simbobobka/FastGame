@@ -5,6 +5,7 @@ from Scrapers.GOG.Gog import GogScraper
 from Scrapers.HttpRequestClient import HttpRequestClient
 from Scrapers.RedisClient import RedisScraperClient
 from Scrapers.ScrapersFactory import ScrapersFactory
+from Scrapers.Steam.Steam import SteamScraper
 
 
 class ScraperOrchestrator:
@@ -14,8 +15,8 @@ class ScraperOrchestrator:
     SCRAPER_CLASSES = [
         GogScraper,
         AllKeyShopScraper,
+        SteamScraper,
         # Add new scrapers here:
-        # SteamScraper,
         # EpicScraper,
     ]
 

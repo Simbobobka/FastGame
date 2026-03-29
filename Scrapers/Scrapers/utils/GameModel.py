@@ -8,7 +8,7 @@ class GameModel(BaseModel):
     description: str = ""
     url: HttpUrl | None = None
     publisher: list[str] = []
-    release_date: str = ""
+    release_date: str | None = None
     price: float = 0.0
     is_free: bool = False
     platforms: list[str] = []
