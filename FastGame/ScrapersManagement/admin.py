@@ -74,6 +74,9 @@ class GameDetailsAdmin(admin.ModelAdmin):
     search_fields = ("name", "url")
     filter_horizontal = ("platforms", "publisher")
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("publisher")
+
     def get_publishers(self, obj: GameDetails):
         return ", ".join(p.name for p in obj.publisher.all())
 
