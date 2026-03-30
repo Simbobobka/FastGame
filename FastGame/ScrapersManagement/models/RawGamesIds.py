@@ -15,7 +15,15 @@ class RawGamesIds(models.Model):
     )
     page = models.IntegerField(null=True)
     retry_count = models.IntegerField(default=0)
+    last_error = models.TextField(blank=True, default="")
+    last_attempt_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     objects = RawGamesIdsManager()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["source", "status"]),
+            models.Index(fields=["updated_at"]),
+        ]

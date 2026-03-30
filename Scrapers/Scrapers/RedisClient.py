@@ -18,7 +18,7 @@ class RedisScraperClient:
             host=config.host,
             port=config.port,
             db=config.db,
-            max_connections=2,
+            max_connections=20,
             decode_responses=True,
         )
         self._redis: Optional[Redis] = None
@@ -63,6 +63,27 @@ class RedisScraperClient:
     async def requeue_task(self, queue_key: str, task_data: str):
         """Requeue failed task to the front of the queue"""
         await self._redis.lpush(queue_key, task_data)
+
+    async def push_dead_letter_task(self, scraper_name: str, task_data: str):
+        key = f"scraping:dead-letter:{scraper_name}"
+        await self._redis.lpush(key, task_data)
+
+    async def get_control_state(self, scraper_name: str, target: str) -> str:
+        key = f"scraping:control:{scraper_name}:{target}"
+        state = await self._redis.get(key)
+        return state or "stop"
+
+    async def set_control_state(self, scraper_name: str, target: str, state: str):
+        key = f"scraping:control:{scraper_name}:{target}"
+        await self._redis.set(key, state)
+
+    async def pop_ids_worker_command(self, scraper_name: str) -> Optional[dict]:
+        key = f"scraping:commands:{scraper_name}:ids"
+        payload = await self._redis.rpop(key)
+        if not payload:
+            return None
+
+        return json.loads(payload)
 
     async def get_queue_length(self, queue_key: str) -> int:
         """Get number of tasks in queue"""

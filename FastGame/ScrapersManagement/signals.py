@@ -2,9 +2,11 @@ from typing import TYPE_CHECKING
 
 from django.db.models.signals import post_save
 from django.dispatch import Signal, receiver
+from django.utils import timezone
 
 from ScrapersManagement.Entities.DetailsScrapingTask import DetailsScrapingTask
 from ScrapersManagement.models.constants import SCRAPING_STATUS
+from ScrapersManagement.models.Source import Source
 from ScrapersManagement.Services.QueueService.RedisQueueService import RedisQueueService
 
 if TYPE_CHECKING:
@@ -25,15 +27,39 @@ def raw_games_ids_bulk_saved_handler(sender, instances: list["RawGamesIds"], **k
 
     try:
         queue_service = RedisQueueService()
+        tasks = []
+        queued_ids = []
+
+        source_ids = {instance.source_id for instance in instances}
+        sources = {
+            source.id: source for source in Source.objects.filter(id__in=source_ids)
+        }
 
         for instance in instances:
-            task_data = DetailsScrapingTask(
-                game_id=instance.game_id,
-                scraper_name=instance.source.name,
-                genre=instance.genre,
-                raw_id=instance.id,
+            source = sources[instance.source_id]
+            if not source.details_scraper_enabled:
+                continue
+
+            tasks.append(
+                DetailsScrapingTask(
+                    game_id=instance.game_id,
+                    scraper_name=source.name,
+                    genre=instance.genre,
+                    raw_id=instance.id,
+                    attempt=instance.retry_count,
+                    max_retries=source.details_max_retries,
+                )
             )
-            queue_service.push_task(task_data)
+            queued_ids.append(instance.id)
+
+        queue_service.push_tasks(tasks)
+
+        if queued_ids:
+            sender.objects.filter(id__in=queued_ids).update(
+                status=SCRAPING_STATUS.IN_PROGRESS,
+                last_error="",
+                last_attempt_at=timezone.now(),
+            )
     except Exception as e:
         print(f"Failed to push task to Redis queue: {e}")
 
@@ -49,4 +75,5 @@ def game_details_saved_handler(sender, instance: "GameDetails", **kwargs):
         )
 
     instance.raw_games_ids.status = SCRAPING_STATUS.SCRAPED
+    instance.raw_games_ids.last_error = ""
     instance.raw_games_ids.save()
