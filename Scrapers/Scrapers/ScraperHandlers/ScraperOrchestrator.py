@@ -6,6 +6,9 @@ from Scrapers.HttpRequestClient import HttpRequestClient
 from Scrapers.RedisClient import RedisScraperClient
 from Scrapers.ScrapersFactory import ScrapersFactory
 from Scrapers.Steam.Steam import SteamScraper
+from Scrapers.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class ScraperOrchestrator:
@@ -34,8 +37,8 @@ class ScraperOrchestrator:
         try:
             await self.redis_client.connect()
             await self.http_client.initialize()
-        except Exception as e:
-            print(f"Failed to initialize clients: {e}")
+        except Exception:
+            logger.error("Failed to initialize clients", exc_info=True)
             raise
 
         self._initialized = True

@@ -4,6 +4,7 @@ from typing import Optional
 from Scrapers.HttpRequestClient import HttpRequestClient
 from Scrapers.RedisClient import RedisScraperClient
 from Scrapers.ScraperPlayWrightClient import ScraperClient
+from Scrapers.utils.logger import get_logger
 
 
 class AbstractScraper(ABC):
@@ -21,6 +22,7 @@ class AbstractScraper(ABC):
         self.redis_client = redis_client
         self.client = browser_client
         self.http_client = http_client
+        self.logger = get_logger(f"scrapers.{self.scraper_name}")
 
     @property
     @abstractmethod
