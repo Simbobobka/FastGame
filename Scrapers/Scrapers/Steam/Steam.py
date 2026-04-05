@@ -43,7 +43,7 @@ class SteamScraper(AbstractScraper):
         if game_id:
             return await self.__scrape_game_details(game_id, raw_id)
         else:
-            print("Starting STEAM game ID scraping...")
+            self.logger.info("Starting game ID scraping...")
             await self.__scrape_game_ids()
 
     async def __scrape_game_ids(self):
@@ -66,12 +66,11 @@ class SteamScraper(AbstractScraper):
             if page_number == 1:
                 total_pages = self.__scrape_pages_quantity(content)
                 if total_pages == 0:
-                    print("No games found for this query.")
+                    self.logger.debug("No games found for this query.")
                     break
 
             game_ids_per_page = content.get("appids", [])
-
-            print(
+            self.logger.debug(
                 f"Scraped {len(game_ids_per_page)} game IDs from page {page_number}/{total_pages}"
             )
 
@@ -85,14 +84,16 @@ class SteamScraper(AbstractScraper):
                         "page": page_number,
                     },
                 )
-                print(f"Successfully sent data for page {page_number}")
+                self.logger.debug(f"Successfully sent data for page {page_number}")
 
                 await self.redis_client.save_last_scrape_page(
                     self.scraper_name, Genres.SHOOTER.value, page_number
                 )
-            except Exception as e:
-                print(f"Failed to send data for page {page_number}: {e}")
-                print("Continuing with next page...")
+            except Exception:
+                self.logger.error(
+                    f"Failed to send data for page {page_number}\nContinuing with next page... ",
+                    exc_info=True,
+                )
 
             page_number += 1
             params.start += 50
@@ -121,8 +122,10 @@ class SteamScraper(AbstractScraper):
                 },
             )
 
-        except ValueError as e:
-            print(f"Failed to save game details for {game_id}: {e}")
+        except Exception:
+            self.logger.error(
+                f"Failed to save game details for {game_id}", exc_info=True
+            )
             raise
 
     def __extract_game_details(self, content: str, url: str) -> GameModel:
