@@ -66,7 +66,37 @@ TEMPLATES = [
 UNFOLD = {
     "SITE_TITLE": "FastGame",
     "SITE_HEADER": "FastGame APP",
-    # "SITE_ICON": "/static/logo.svg",
+    "SITE_LOGO": "/static/logo.png",
+    "SITE_ICON": "/static/logo.png",
+    "SITE_FAVICONS": [
+        {
+            "rel": "icon",
+            "href": "/static/logo.ico",
+            "type": "image/x-icon",
+        },
+        {
+            "rel": "shortcut icon",
+            "href": "/static/logo.ico",
+            "type": "image/x-icon",
+        },
+        {
+            "rel": "icon",
+            "href": "/static/logo.png",
+            "type": "image/png",
+            "sizes": "32x32",
+        },
+        {
+            "rel": "icon",
+            "href": "/static/logo.png",
+            "type": "image/png",
+            "sizes": "192x192",
+        },
+        {
+            "rel": "apple-touch-icon",
+            "href": "/static/logo.png",
+            "sizes": "180x180",
+        },
+    ],
     "COLORS": {
         "primary": {
             "50": "243 244 249",
@@ -157,4 +187,6 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
