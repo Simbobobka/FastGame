@@ -1,4 +1,5 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 
 from .actions import (
     disable_details_scraper,
@@ -17,7 +18,7 @@ from .models.Source import Source
 
 
 @admin.register(Source)
-class SourceAdmin(admin.ModelAdmin):
+class SourceAdmin(ModelAdmin):
     list_display = (
         "id",
         "name",
@@ -39,7 +40,7 @@ class SourceAdmin(admin.ModelAdmin):
 
 
 @admin.register(RawGamesIds)
-class RawGamesIdsAdmin(admin.ModelAdmin):
+class RawGamesIdsAdmin(ModelAdmin):
     list_display = (
         "id",
         "source",
@@ -57,7 +58,7 @@ class RawGamesIdsAdmin(admin.ModelAdmin):
 
 
 @admin.register(GameDetails)
-class GameDetailsAdmin(admin.ModelAdmin):
+class GameDetailsAdmin(ModelAdmin):
     list_display = (
         "id",
         "name",
@@ -84,12 +85,12 @@ class GameDetailsAdmin(admin.ModelAdmin):
 
 
 @admin.register(Platform)
-class PlatformAdmin(admin.ModelAdmin):
+class PlatformAdmin(ModelAdmin):
     list_display = ("id", "name")
     search_fields = ("name",)
 
 
 @admin.register(Publisher)
-class PublisherAdmin(admin.ModelAdmin):
+class PublisherAdmin(ModelAdmin):
     list_display = ("id", "name")
     search_fields = ("name",)
