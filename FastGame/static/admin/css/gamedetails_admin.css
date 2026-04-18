@@ -1,0 +1,40 @@
+.change-form fieldset.gamedetails-overview,
+.change-form fieldset.gamedetails-commerce,
+.change-form fieldset.gamedetails-relations,
+.change-form fieldset.gamedetails-meta {
+    background: linear-gradient(135deg, var(--color-base-50) 0%, var(--color-primary-50) 100%);
+    border: 1px solid var(--color-primary-200);
+    border-radius: 14px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    margin-bottom: 16px;
+    padding: 10px 14px 14px;
+}
+
+.change-form fieldset.gamedetails-overview h2,
+.change-form fieldset.gamedetails-commerce h2,
+.change-form fieldset.gamedetails-relations h2,
+.change-form fieldset.gamedetails-meta h2 {
+    color: var(--color-primary-700);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.change-form fieldset.gamedetails-overview textarea {
+    min-height: 140px;
+}
+
+.dark .change-form fieldset.gamedetails-overview,
+.dark .change-form fieldset.gamedetails-commerce,
+.dark .change-form fieldset.gamedetails-relations,
+.dark .change-form fieldset.gamedetails-meta {
+    background: linear-gradient(135deg, var(--color-base-900) 0%, var(--color-primary-900) 100%);
+    border-color: var(--color-primary-700);
+    box-shadow: none;
+}
+
+.dark .change-form fieldset.gamedetails-overview h2,
+.dark .change-form fieldset.gamedetails-commerce h2,
+.dark .change-form fieldset.gamedetails-relations h2,
+.dark .change-form fieldset.gamedetails-meta h2 {
+    color: var(--color-primary-300);
+}

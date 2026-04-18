@@ -22,6 +22,9 @@ class RawGamesIds(models.Model):
 
     objects = RawGamesIdsManager()
 
+    def __str__(self) -> str:
+        return self.game_id
+
     class Meta:
         indexes = [
             models.Index(fields=["source", "status"]),
