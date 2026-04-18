@@ -23,6 +23,7 @@ ALLOWED_HOSTS = ["localhost", "127.0.0.1", "app"]
 # Application definition
 
 INSTALLED_APPS = [
+    "unfold",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -61,6 +62,12 @@ TEMPLATES = [
         },
     },
 ]
+
+UNFOLD = {
+    "SITE_TITLE": "FastGame",
+    "SITE_HEADER": "FastGame APP",
+    # "SITE_ICON": "/static/logo.svg",
+}
 
 WSGI_APPLICATION = "FastGame.wsgi.application"
 
