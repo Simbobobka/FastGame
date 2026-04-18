@@ -67,6 +67,20 @@ UNFOLD = {
     "SITE_TITLE": "FastGame",
     "SITE_HEADER": "FastGame APP",
     # "SITE_ICON": "/static/logo.svg",
+    "COLORS": {
+        "primary": {
+            "50": "243 244 249",
+            "100": "227 229 240",
+            "200": "196 201 223",
+            "300": "158 165 198",
+            "400": "112 120 163",
+            "500": "73 82 128",
+            "600": "52 58 92",
+            "700": "40 42 65",
+            "800": "30 32 50",
+            "900": "20 22 35",
+        },
+    },
 }
 
 WSGI_APPLICATION = "FastGame.wsgi.application"
