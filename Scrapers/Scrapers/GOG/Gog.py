@@ -48,7 +48,8 @@ class GogScraper(AbstractScraper):
     async def __scrape_game_ids(self):
         """Scrape list of games from GOG homepage"""
         await self.client.pages[0].goto(
-            self.base_url + f"en/games?genres={Genres.SHOOTER.value}"
+            self.base_url + f"en/games?genres={Genres.SHOOTER.value}",
+            wait_until="domcontentloaded",
         )
         await sleep(2)
         await self.__accept_cookies(self.client.pages[0])
@@ -58,9 +59,9 @@ class GogScraper(AbstractScraper):
             if page_number > 1:
                 await self.client.pages[0].goto(
                     self.base_url
-                    + f"en/games?genres={Genres.SHOOTER.value}&page={page_number}"
+                    + f"en/games?genres={Genres.SHOOTER.value}&page={page_number}",
+                    wait_until="domcontentloaded",
                 )
-                await self.client.pages[0].wait_for_load_state("domcontentloaded")
 
             game_ids_per_page = self.__extract_game_ids(
                 await self.client.pages[0].content()
@@ -92,8 +93,9 @@ class GogScraper(AbstractScraper):
         self, game_id: str, page_number: int, raw_id: int
     ) -> None:
         """Scrape game details from GOG game page"""
-        await self.client.pages[page_number].goto(self.base_url + f"en/game/{game_id}")
-        await self.client.pages[page_number].wait_for_load_state("domcontentloaded")
+        await self.client.pages[page_number].goto(
+            self.base_url + f"en/game/{game_id}", wait_until="domcontentloaded"
+        )
 
         await self.__accept_cookies(self.client.pages[page_number])
 
