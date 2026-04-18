@@ -39,6 +39,7 @@ class AllKeyShopScraper(AbstractScraper):
         if game_id:
             return await self.__scrape_game_details(game_id, raw_id)
         else:
+            self.logger.info("Starting AllKeyShop game ID scraping...")
             await self.__scrape_game_ids()
 
     async def __scrape_game_details(
@@ -69,8 +70,10 @@ class AllKeyShopScraper(AbstractScraper):
                     "scraper": self.scraper_name,
                 },
             )
-        except ValueError as e:
-            print(f"Failed to save game details for {game_id}: {e}")
+        except ValueError:
+            self.logger.error(
+                f"Failed to save game details for {game_id}", exc_info=True
+            )
             raise
 
     def __extract_game_details(self, html_content: str, url: str) -> GameModel:
@@ -186,7 +189,7 @@ class AllKeyShopScraper(AbstractScraper):
                     raise Exception(f"Failed to fetch game IDs, status code: {status}")
 
             game_ids_per_page = self.__extract_game_ids(content.get("products"))
-            print(
+            self.logger.debug(
                 f"Scraped {len(game_ids_per_page)} game IDs from page {page_number}/{pages}"
             )
             await self.redis_client.save_last_scrape_page(
@@ -203,10 +206,12 @@ class AllKeyShopScraper(AbstractScraper):
                         "page": page_number,
                     },
                 )
-                print(f"Successfully sent data for page {page_number}")
-            except Exception as e:
-                print(f"Failed to send data for page {page_number}: {e}")
-                print("Continuing with next page...")
+                self.logger.debug(f"Successfully sent data for page {page_number}")
+            except Exception:
+                self.logger.error(
+                    f"Failed to send data for page {page_number}\nContinuing with next page...",
+                    exc_info=True,
+                )
 
     def __extract_game_ids(self, products: list[dict]) -> set[str]:
         """Extract game slug IDs from product links."""

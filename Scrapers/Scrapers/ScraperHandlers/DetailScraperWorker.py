@@ -1,10 +1,10 @@
 import asyncio
-import traceback
 from asyncio import sleep
 from typing import Optional
 
 from Scrapers.AbstractScraper import AbstractScraper
 from Scrapers.utils.DetailsScrapingTask import DetailsScrapingTask
+from Scrapers.utils.logger import get_logger
 
 
 class DetailScraperWorker:
@@ -16,6 +16,7 @@ class DetailScraperWorker:
         self.scraper = scraper
         self.concurrency = concurrency
         self.polling_interval = polling_interval
+        self.logger = get_logger(f"worker.details.{self.scraper.scraper_name}")
 
     async def process_task(
         self, task_data: DetailsScrapingTask, tab_index: int
@@ -25,17 +26,15 @@ class DetailScraperWorker:
         raw_id = task_data.raw_id
 
         try:
-            print(
-                f"[{self.scraper.scraper_name}] Scraping game {game_id} on tab {tab_index}"
-            )
+            self.logger.debug(f"Scraping game {game_id} on tab {tab_index}")
 
             await self.scraper.scrape(
                 game_id=game_id, page_number=tab_index, raw_id=raw_id
             )
-            print(f"[{self.scraper.scraper_name}] Successfully scraped {game_id}")
+            self.logger.debug(f"Successfully scraped {game_id}")
         except Exception as e:
-            print(f"[{self.scraper.scraper_name}] Error scraping {game_id}: {e}")
-            traceback.print_exc()
+            self.logger.error(f"Error scraping {game_id}", exc_info=True)
+
             task_data.attempt += 1
             task_data.error = str(e)
 
@@ -44,9 +43,7 @@ class DetailScraperWorker:
                     self.scraper.scraper_name,
                     task_data.model_dump_json(),
                 )
-                print(
-                    f"[{self.scraper.scraper_name}] Max retries reached for {game_id}"
-                )
+                self.logger.warning(f"Max retries reached for {game_id}")
                 return None
 
             await self._requeue_failed_task(task_data)
@@ -58,8 +55,8 @@ class DetailScraperWorker:
 
         queue_key = f"scraping:queue:{self.scraper.scraper_name}"
 
-        print(
-            f"[{self.scraper.scraper_name}] DetailScraperWorker started with {self.concurrency} concurrent workers"
+        self.logger.info(
+            f"DetailScraperWorker started with {self.concurrency} concurrent workers"
         )
 
         try:
@@ -78,8 +75,8 @@ class DetailScraperWorker:
                     )
 
                     if queue_length == 0:
-                        print(
-                            f"[{self.scraper.scraper_name}] No tasks in queue, sleeping for {self.polling_interval} seconds..."
+                        self.logger.debug(
+                            f" No tasks in queue, sleeping for {self.polling_interval} seconds..."
                         )
                         await sleep(self.polling_interval)
                         continue
@@ -91,9 +88,7 @@ class DetailScraperWorker:
                         )
                     )
 
-                    print(
-                        f"[{self.scraper.scraper_name}] Processing {len(tasks)} tasks concurrently"
-                    )
+                    self.logger.debug(f"Processing {len(tasks)} tasks concurrently")
 
                     await asyncio.gather(
                         *[
@@ -103,21 +98,18 @@ class DetailScraperWorker:
                         return_exceptions=True,
                     )
 
-                    print(
-                        f"[{self.scraper.scraper_name}] Completed batch: {len(tasks)} tasks processed"
-                    )
+                    self.logger.info(f"Completed batch: {len(tasks)} tasks processed")
                     await asyncio.sleep(2)
-                except Exception as e:
-                    print(f"[{self.scraper.scraper_name}] Error processing batch: {e}")
-                    traceback.print_exc()
+                except Exception:
+                    self.logger.error("Error processing batch", exc_info=True)
                     await sleep(self.polling_interval)
                     continue
         except KeyboardInterrupt:
-            print(f"[{self.scraper.scraper_name}] Received shutdown signal")
+            self.logger.info("Received shutdown signal")
         finally:
             if self.scraper.client:
                 await self.scraper.client.close_connection()
-            print(f"[{self.scraper.scraper_name}] DetailScraperWorker stopped")
+            self.logger.info("DetailScraperWorker stopped")
 
     async def _requeue_failed_task(self, task_data: DetailsScrapingTask):
         """Requeue failed task for retry"""
@@ -125,4 +117,4 @@ class DetailScraperWorker:
         await self.scraper.redis_client.requeue_task(
             queue_key, task_data.model_dump_json()
         )
-        print(f"[{self.scraper.scraper_name}] Requeued task: {task_data.game_id}")
+        self.logger.warning(f"Requeued task: {task_data.game_id}")

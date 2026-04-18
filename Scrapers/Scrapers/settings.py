@@ -1,3 +1,4 @@
+import logging
 from functools import lru_cache
 from typing import Type, TypeVar
 
@@ -30,6 +31,13 @@ class PlaywrightConfig(ConfigBase):
 
 
 ConfigType = TypeVar("ConfigType", bound=ConfigBase)
+
+
+class LoggingConfig(ConfigBase):
+    log_level: str
+    output_dir: str
+    max_bytes: int
+    backup_count: int
 
 
 @lru_cache()

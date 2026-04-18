@@ -1,6 +1,9 @@
 import asyncio
 
 from Scrapers.ScraperHandlers.ScraperOrchestrator import ScraperOrchestrator
+from Scrapers.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 async def main():
@@ -10,11 +13,10 @@ async def main():
 
     try:
         await orchestrator.run_all()
-    except Exception as e:
-        print(f"Error running orchestrator: {e}")
-        pass  # TODO: Add proper error handling/logging
+    except Exception:
+        logger.critical("Fatal error running orchestrator", exc_info=True)
     finally:
-        print("Scraper orchestrator has stopped.")
+        logger.info("Scraper orchestrator has stopped.")
 
 
 if __name__ == "__main__":

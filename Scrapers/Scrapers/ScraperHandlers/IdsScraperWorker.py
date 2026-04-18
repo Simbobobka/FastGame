@@ -1,6 +1,7 @@
 from asyncio import sleep
 
 from Scrapers.AbstractScraper import AbstractScraper
+from Scrapers.utils.logger import get_logger
 
 
 class IdsScraperWorker:
@@ -9,10 +10,11 @@ class IdsScraperWorker:
     def __init__(self, scraper: AbstractScraper, polling_interval: int = 5):
         self.scraper = scraper
         self.polling_interval = polling_interval
+        self.logger = get_logger(f"worker.ids.{self.scraper.scraper_name}")
 
     async def run(self):
         """Execute ID scraping workflow"""
-        print(f"Starting {self.scraper.scraper_name} ID scraper worker...")
+        self.logger.info(f"Starting {self.scraper.scraper_name} ID scraper worker...")
         if self.scraper.client:
             await self.scraper.client.initiate()
 
@@ -23,7 +25,7 @@ class IdsScraperWorker:
                     "ids",
                 )
                 if state == "stop":
-                    print(
+                    self.logger.debug(
                         f"{self.scraper.scraper_name} IDs scraping is paused. Waiting for 'start' command..."
                     )
                     await sleep(self.polling_interval)
@@ -33,13 +35,13 @@ class IdsScraperWorker:
                 await self.scraper.redis_client.set_control_state(
                     self.scraper.scraper_name, "ids", "stop"
                 )
-                print(f"{self.scraper.scraper_name} ID scraping completed successfully")
-        except Exception as e:
-            print(f"Error in IdsScraperWorker: {e}")
-            import traceback
+                self.logger.info(
+                    f"{self.scraper.scraper_name} ID scraping completed successfully"
+                )
+        except Exception:
+            self.logger.error("Error in IdsScraperWorker", exc_info=True)
 
-            traceback.print_exc()
         finally:
             if self.scraper.client:
                 await self.scraper.client.close_connection()
-            print(f"{self.scraper.scraper_name} IDs control worker stopped")
+            self.logger.info(f"{self.scraper.scraper_name} IDs control worker stopped")

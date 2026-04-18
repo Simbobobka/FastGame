@@ -42,7 +42,7 @@ class GogScraper(AbstractScraper):
         if game_id:
             return await self.__scrape_game_details(game_id, page_number, raw_id)
         else:
-            print("Starting GOG game ID scraping...")
+            self.logger.info("Starting GOG game ID scraping...")
             await self.__scrape_game_ids()
 
     async def __scrape_game_ids(self) -> None:
@@ -66,7 +66,7 @@ class GogScraper(AbstractScraper):
             game_ids_per_page = self.__extract_game_ids(
                 await self.client.pages[0].content()
             )
-            print(
+            self.logger.debug(
                 f"Scraped page {page_number}/{pages}, found {len(game_ids_per_page)} game IDs"
             )
 
@@ -84,10 +84,12 @@ class GogScraper(AbstractScraper):
                         "page": page_number,
                     },
                 )
-                print(f"Successfully sent data for page {page_number}")
-            except Exception as e:
-                print(f"Failed to send data for page {page_number}: {e}")
-                print("Continuing with next page...")
+                self.logger.debug(f"Successfully sent data for page {page_number}")
+            except Exception:
+                self.logger.error(
+                    f"Failed to send data for page {page_number}\nContinuing with next page...",
+                    exc_info=True,
+                )
 
     async def __scrape_game_details(
         self, game_id: str, page_number: int, raw_id: int
@@ -113,8 +115,11 @@ class GogScraper(AbstractScraper):
                     "scraper": self.scraper_name,
                 },
             )
-        except ValueError as e:
-            print(f"Failed to save game details for {game_id}: {e}")
+        except ValueError:
+
+            self.logger.error(
+                f"Failed to save game details for {game_id}", exc_info=True
+            )
             raise
 
     async def __accept_cookies(self, page: Page):
@@ -133,8 +138,8 @@ class GogScraper(AbstractScraper):
                     if accept_button:
                         await accept_button.click()
                         await sleep(1)
-        except Exception as e:
-            print(f"Error accepting cookies: {e}")
+        except Exception:
+            self.logger.warning("Error accepting cookies", exc_info=True)
 
     async def __continue_after_age_warning(self, page: Page) -> None:
         """Click Continue when GOG 18+ age warning is shown"""

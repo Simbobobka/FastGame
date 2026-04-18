@@ -67,3 +67,6 @@ dmypy.json
 # Celery
 celerybeat-schedule*
 *.pid
+
+# logs
+*.log
