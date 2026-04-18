@@ -45,7 +45,7 @@ class GogScraper(AbstractScraper):
             print("Starting GOG game ID scraping...")
             await self.__scrape_game_ids()
 
-    async def __scrape_game_ids(self):
+    async def __scrape_game_ids(self) -> None:
         """Scrape list of games from GOG homepage"""
         await self.client.pages[0].goto(
             self.base_url + f"en/games?genres={Genres.SHOOTER.value}",
