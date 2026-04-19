@@ -162,7 +162,7 @@ class GogScraper(AbstractScraper):
                     "h1.productcard-basics__title", timeout=10000
                 )
         except Exception as e:
-            print(f"Error handling 18+ age warning: {e}")
+            self.logger.error(f"Error handling 18+ age warning: {e}")
 
     def __extract_game_ids(self, content) -> set[str]:
         """Extract game ids from page content"""
