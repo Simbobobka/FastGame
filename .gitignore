@@ -44,6 +44,8 @@ env/
 *.swo
 *~
 
+*data/
+
 # OS
 .DS_Store
 Thumbs.db

@@ -45,10 +45,11 @@ class GogScraper(AbstractScraper):
             self.logger.info("Starting GOG game ID scraping...")
             await self.__scrape_game_ids()
 
-    async def __scrape_game_ids(self):
+    async def __scrape_game_ids(self) -> None:
         """Scrape list of games from GOG homepage"""
         await self.client.pages[0].goto(
-            self.base_url + f"en/games?genres={Genres.SHOOTER.value}"
+            self.base_url + f"en/games?genres={Genres.SHOOTER.value}",
+            wait_until="domcontentloaded",
         )
         await sleep(2)
         await self.__accept_cookies(self.client.pages[0])
@@ -58,9 +59,9 @@ class GogScraper(AbstractScraper):
             if page_number > 1:
                 await self.client.pages[0].goto(
                     self.base_url
-                    + f"en/games?genres={Genres.SHOOTER.value}&page={page_number}"
+                    + f"en/games?genres={Genres.SHOOTER.value}&page={page_number}",
+                    wait_until="domcontentloaded",
                 )
-                await self.client.pages[0].wait_for_load_state("domcontentloaded")
 
             game_ids_per_page = self.__extract_game_ids(
                 await self.client.pages[0].content()
@@ -94,14 +95,16 @@ class GogScraper(AbstractScraper):
         self, game_id: str, page_number: int, raw_id: int
     ) -> None:
         """Scrape game details from GOG game page"""
-        await self.client.pages[page_number].goto(self.base_url + f"en/game/{game_id}")
-        await self.client.pages[page_number].wait_for_load_state("domcontentloaded")
+        page = self.client.pages[page_number]
 
-        await self.__accept_cookies(self.client.pages[page_number])
-
-        game_details = self.__extract_game_details(
-            await self.client.pages[page_number].content()
+        await page.goto(
+            self.base_url + f"en/game/{game_id}", wait_until="domcontentloaded"
         )
+
+        await self.__accept_cookies(page)
+        await self.__continue_after_age_warning(page)
+
+        game_details = self.__extract_game_details(await page.content())
 
         try:
             await self.send_data(
@@ -137,6 +140,29 @@ class GogScraper(AbstractScraper):
                         await sleep(1)
         except Exception:
             self.logger.warning("Error accepting cookies", exc_info=True)
+
+    async def __continue_after_age_warning(self, page: Page) -> None:
+        """Click Continue when GOG 18+ age warning is shown"""
+        try:
+            age_gate = await page.query_selector("div.age-gate")
+
+            if not age_gate:
+                return
+
+            if not await age_gate.is_visible():
+                return
+
+            continue_button = await page.query_selector(
+                "div.age-gate button.age-gate__button"
+            )
+
+            if continue_button:
+                await continue_button.click()
+                await page.wait_for_selector(
+                    "h1.productcard-basics__title", timeout=10000
+                )
+        except Exception as e:
+            self.logger.error(f"Error handling 18+ age warning: {e}")
 
     def __extract_game_ids(self, content) -> set[str]:
         """Extract game ids from page content"""
