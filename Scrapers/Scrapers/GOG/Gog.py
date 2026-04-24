@@ -242,6 +242,14 @@ class GogScraper(AbstractScraper):
                 if "mac" in platforms_text:
                     game_details.platforms.append(SupportedOSSystems.MAC.value)
 
+        description_section = soup.find(attrs={"selenium-id": "ProductCardDescription"})
+        if description_section:
+            description_div = description_section.find("div", class_="description")
+            if description_div:
+                game_details.description = description_div.get_text(
+                    separator="\n", strip=True
+                )
+
         price_tag = soup.find("span", attrs={"selenium-id": "ProductBasePrice"})
         if price_tag:
             game_details.price = float(price_tag.text.strip().replace("$", ""))
