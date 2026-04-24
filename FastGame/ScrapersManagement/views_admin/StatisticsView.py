@@ -5,9 +5,9 @@ from django.db.models import Avg, Count, Max, Min, Q
 from django.db.models.functions import ExtractYear
 from django.template.response import TemplateResponse
 
-from .models.GameDetails import GameDetails
-from .models.RawGamesIds import RawGamesIds
-from .models.Source import Source
+from ..models.GameDetails import GameDetails
+from ..models.RawGamesIds import RawGamesIds
+from ..models.Source import Source
 
 
 def statistics_view(request):
@@ -62,7 +62,6 @@ def statistics_view(request):
     total_scraped = RawGamesIds.objects.filter(status="SC").count()
     total_failed = RawGamesIds.objects.filter(status="FA").count()
 
-    # Chart: average price by release year (bar)
     price_chart_data = json.dumps(
         {
             "labels": [str(r["year"]) for r in price_by_year],
@@ -77,7 +76,6 @@ def statistics_view(request):
         }
     )
 
-    # Chart: total / free / paid games per source (bar, grouped)
     source_chart_data = json.dumps(
         {
             "labels": [r["source__name"] for r in stats_by_source],
@@ -104,7 +102,6 @@ def statistics_view(request):
         }
     )
 
-    # Chart: scraping progress per source (stacked bar)
     scraping_chart_data = json.dumps(
         {
             "labels": [r["source__name"] for r in raw_ids_by_source],
