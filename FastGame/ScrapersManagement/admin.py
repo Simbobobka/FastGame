@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.urls import path
 from unfold.admin import ModelAdmin
 
 from .actions import (
@@ -135,3 +136,15 @@ class PlatformAdmin(ModelAdmin):
 class PublisherAdmin(ModelAdmin):
     list_display = ("id", "name")
     search_fields = ("name",)
+
+
+def _get_urls(self):
+    from .views_admin import statistics_view
+
+    return [
+        path("statistics/", self.admin_view(statistics_view), name="statistics"),
+    ] + _original_get_urls(self)
+
+
+_original_get_urls = admin.site.__class__.get_urls
+admin.site.__class__.get_urls = _get_urls

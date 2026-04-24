@@ -64,6 +64,11 @@ UNFOLD = {
                         ),
                     },
                     {
+                        "title": "Statistics",
+                        "icon": "bar_chart",
+                        "link": reverse_lazy("admin:statistics"),
+                    },
+                    {
                         "title": "Game Details",
                         "icon": "sports_esports",
                         "link": reverse_lazy(
