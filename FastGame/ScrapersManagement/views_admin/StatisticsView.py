@@ -10,7 +10,7 @@ from ..models.RawGamesIds import RawGamesIds
 from ..models.Source import Source
 
 
-def statistics_view(request):
+def statistics_view(request) -> TemplateResponse:
     price_by_year = list(
         GameDetails.objects.filter(
             release_date__isnull=False,
