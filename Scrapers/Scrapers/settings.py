@@ -34,10 +34,10 @@ ConfigType = TypeVar("ConfigType", bound=ConfigBase)
 
 
 class LoggingConfig(ConfigBase):
-    log_level: str
-    output_dir: str
-    max_bytes: int
-    backup_count: int
+    log_level: str = "INFO"
+    output_dir: str = "logs"
+    max_bytes: int = 10 * 1024 * 1024
+    backup_count: int = 5
 
 
 @lru_cache()
