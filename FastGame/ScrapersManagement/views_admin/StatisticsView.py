@@ -8,6 +8,7 @@ from django.template.response import TemplateResponse
 from ..models.GameDetails import GameDetails
 from ..models.RawGamesIds import RawGamesIds
 from ..models.Source import Source
+from ..models.constants import SCRAPING_STATUS
 
 
 def statistics_view(request) -> TemplateResponse:
@@ -45,11 +46,11 @@ def statistics_view(request) -> TemplateResponse:
         RawGamesIds.objects.values("source__name")
         .annotate(
             total=Count("id"),
-            scraped=Count("id", filter=Q(status="SC")),
-            failed=Count("id", filter=Q(status="FA")),
-            unprocessed=Count("id", filter=Q(status="UN")),
-            in_progress=Count("id", filter=Q(status="IP")),
-            retry_waiting=Count("id", filter=Q(status="RW")),
+            scraped=Count("id", filter=Q(status=SCRAPING_STATUS.SCRAPED)),
+            failed=Count("id", filter=Q(status=SCRAPING_STATUS.FAILED)),
+            unprocessed=Count("id", filter=Q(status=SCRAPING_STATUS.UNPROCESSED)),
+            in_progress=Count("id", filter=Q(status=SCRAPING_STATUS.IN_PROGRESS)),
+            retry_waiting=Count("id", filter=Q(status=SCRAPING_STATUS.RETRY_WAITING)),
         )
         .order_by("source__name")
     )
@@ -59,8 +60,8 @@ def statistics_view(request) -> TemplateResponse:
     total_paid = GameDetails.objects.filter(is_free=False, price__isnull=False).count()
     total_sources = Source.objects.filter(is_active=True).count()
     total_raw_ids = RawGamesIds.objects.count()
-    total_scraped = RawGamesIds.objects.filter(status="SC").count()
-    total_failed = RawGamesIds.objects.filter(status="FA").count()
+    total_scraped = RawGamesIds.objects.filter(status=SCRAPING_STATUS.SCRAPED).count()
+    total_failed = RawGamesIds.objects.filter(status=SCRAPING_STATUS.FAILED).count()
 
     price_chart_data = json.dumps(
         {
