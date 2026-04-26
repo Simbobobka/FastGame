@@ -1,1 +1,1 @@
-from . import StatisticsView
+from . import HomeView, StatisticsView
