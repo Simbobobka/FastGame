@@ -5,10 +5,10 @@ from django.db.models import Avg, Count, Max, Min, Q
 from django.db.models.functions import ExtractYear
 from django.template.response import TemplateResponse
 
+from ..models.constants import SCRAPING_STATUS
 from ..models.GameDetails import GameDetails
 from ..models.RawGamesIds import RawGamesIds
 from ..models.Source import Source
-from ..models.constants import SCRAPING_STATUS
 
 
 def statistics_view(request) -> TemplateResponse:
