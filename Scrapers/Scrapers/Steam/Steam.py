@@ -20,6 +20,8 @@ class SteamScraper(AbstractScraper):
 
     requires_browser: bool = False
 
+    AGE_GATE_HEADERS = {"Cookie": "birthtime=283993201; lastagecheckage=1-0-1989"}
+
     def __init__(
         self,
         redis_client: RedisScraperClient,
@@ -104,7 +106,9 @@ class SteamScraper(AbstractScraper):
         """Scrape game details from Steam game page"""
         url = self.base_url + f"app/{game_id}/"
 
-        status, content = await self.http_client.get_request(url)
+        status, content = await self.http_client.get_request(
+            url, headers=self.AGE_GATE_HEADERS
+        )
 
         if status != 200:
             raise Exception(
