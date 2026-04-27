@@ -1,162 +1,82 @@
-import json
+import logging
 
 from django.contrib import admin
-from django.db.models import Avg, Count, Max, Min, Q
-from django.db.models.functions import ExtractYear
 from django.template.response import TemplateResponse
 
-from ..models.constants import SCRAPING_STATUS
-from ..models.GameDetails import GameDetails
-from ..models.RawGamesIds import RawGamesIds
-from ..models.Source import Source
+from .bi_statistics import get_bi_statistics_data
+from .clasterization_statistics import get_clasterization_statistics_data
+from .general_statistics import get_general_statistics_data
+
+logger = logging.getLogger(__name__)
+
+
+_VALID_TABS = ("general", "bi", "clasterization")
+
+
+_AVAILABLE_TABS = [
+    {"name": "general", "label": "General Statistics", "icon": "summary"},
+    {"name": "bi", "label": "BI", "icon": "analytics"},
+    {"name": "clasterization", "label": "Clasterization", "icon": "cluster"},
+]
+
+_TAB_DATA_HANDLERS = {
+    "general": get_general_statistics_data,
+    "bi": get_bi_statistics_data,
+    "clasterization": get_clasterization_statistics_data,
+}
 
 
 def statistics_view(request) -> TemplateResponse:
-    price_by_year = list(
-        GameDetails.objects.filter(
-            release_date__isnull=False,
-            is_free=False,
-            price__isnull=False,
+    """
+    Main Statistics admin view with tab-based navigation.
+
+    URL: /admin/statistics/
+    Query params:
+        tab (str): One of 'general' | 'bi' | 'clasterization'. Defaults to 'general'.
+
+    Security:
+        Wrapped by admin.site.admin_view() in ScrapersManagement/admin/__init__.py,
+        which enforces Django admin authentication and CSRF. No extra decorator needed.
+
+    Returns:
+        TemplateResponse rendered from admin/statistics.html with full admin context
+        plus tab-specific data merged at the top level.
+    """
+    raw_tab = request.GET.get("tab", "general").lower()
+    active_tab = raw_tab if raw_tab in _VALID_TABS else "general"
+
+    if raw_tab not in _VALID_TABS:
+        logger.warning(
+            "Invalid statistics tab requested: '%s' by user '%s'. Defaulting to 'general'.",
+            request.GET.get("tab"),
+            request.user.username,
         )
-        .annotate(year=ExtractYear("release_date"))
-        .values("year")
-        .annotate(
-            avg_price=Avg("price"),
-            count=Count("id"),
-            min_price=Min("price"),
-            max_price=Max("price"),
+
+    logger.info(
+        "Statistics page accessed — user: %s, tab: %s",
+        request.user.username,
+        active_tab,
+    )
+
+    try:
+        tab_data = _TAB_DATA_HANDLERS[active_tab]()
+    except Exception as e:
+        logger.error(
+            "Unhandled error loading '%s' statistics: %s",
+            active_tab,
+            str(e),
+            exc_info=True,
         )
-        .order_by("year")
-    )
-
-    stats_by_source = list(
-        GameDetails.objects.values("source__name", "source__code")
-        .annotate(
-            total=Count("id"),
-            free_count=Count("id", filter=Q(is_free=True)),
-            paid_count=Count("id", filter=Q(is_free=False, price__isnull=False)),
-            avg_price=Avg("price", filter=Q(is_free=False, price__isnull=False)),
-            min_price=Min("price", filter=Q(is_free=False, price__isnull=False)),
-            max_price=Max("price", filter=Q(is_free=False, price__isnull=False)),
-        )
-        .order_by("source__name")
-    )
-
-    raw_ids_by_source = list(
-        RawGamesIds.objects.values("source__name")
-        .annotate(
-            total=Count("id"),
-            scraped=Count("id", filter=Q(status=SCRAPING_STATUS.SCRAPED)),
-            failed=Count("id", filter=Q(status=SCRAPING_STATUS.FAILED)),
-            unprocessed=Count("id", filter=Q(status=SCRAPING_STATUS.UNPROCESSED)),
-            in_progress=Count("id", filter=Q(status=SCRAPING_STATUS.IN_PROGRESS)),
-            retry_waiting=Count("id", filter=Q(status=SCRAPING_STATUS.RETRY_WAITING)),
-        )
-        .order_by("source__name")
-    )
-
-    total_games = GameDetails.objects.count()
-    total_free = GameDetails.objects.filter(is_free=True).count()
-    total_paid = GameDetails.objects.filter(is_free=False, price__isnull=False).count()
-    total_sources = Source.objects.filter(is_active=True).count()
-    total_raw_ids = RawGamesIds.objects.count()
-    total_scraped = RawGamesIds.objects.filter(status=SCRAPING_STATUS.SCRAPED).count()
-    total_failed = RawGamesIds.objects.filter(status=SCRAPING_STATUS.FAILED).count()
-
-    price_chart_data = json.dumps(
-        {
-            "labels": [str(r["year"]) for r in price_by_year],
-            "datasets": [
-                {
-                    "label": "Avg Price ($)",
-                    "data": [float(r["avg_price"]) for r in price_by_year],
-                    "backgroundColor": "var(--color-primary-500)",
-                    "borderRadius": 4,
-                },
-            ],
+        tab_data = {
+            "error": f"Error loading {active_tab} statistics. Check server logs."
         }
-    )
-
-    source_chart_data = json.dumps(
-        {
-            "labels": [r["source__name"] for r in stats_by_source],
-            "datasets": [
-                {
-                    "label": "Total",
-                    "data": [r["total"] for r in stats_by_source],
-                    "backgroundColor": "var(--color-primary-400)",
-                    "borderRadius": 4,
-                },
-                {
-                    "label": "Free",
-                    "data": [r["free_count"] for r in stats_by_source],
-                    "backgroundColor": "var(--color-primary-200)",
-                    "borderRadius": 4,
-                },
-                {
-                    "label": "Paid",
-                    "data": [r["paid_count"] for r in stats_by_source],
-                    "backgroundColor": "var(--color-primary-600)",
-                    "borderRadius": 4,
-                },
-            ],
-        }
-    )
-
-    scraping_chart_data = json.dumps(
-        {
-            "labels": [r["source__name"] for r in raw_ids_by_source],
-            "datasets": [
-                {
-                    "label": "Scraped",
-                    "data": [r["scraped"] for r in raw_ids_by_source],
-                    "backgroundColor": "var(--color-primary-500)",
-                    "borderRadius": 4,
-                    "stack": "total",
-                },
-                {
-                    "label": "Failed",
-                    "data": [r["failed"] for r in raw_ids_by_source],
-                    "backgroundColor": "#ef4444",
-                    "borderRadius": 4,
-                    "stack": "total",
-                },
-                {
-                    "label": "Unprocessed",
-                    "data": [r["unprocessed"] for r in raw_ids_by_source],
-                    "backgroundColor": "#d1d5db",
-                    "borderRadius": 4,
-                    "stack": "total",
-                },
-            ],
-        }
-    )
-
-    stacked_options = json.dumps(
-        {
-            "scales": {
-                "x": {"stacked": True},
-                "y": {"stacked": True},
-            }
-        }
-    )
 
     context = {
         **admin.site.each_context(request),
         "title": "Statistics",
-        "price_by_year": list(reversed(price_by_year)),
-        "stats_by_source": stats_by_source,
-        "raw_ids_by_source": raw_ids_by_source,
-        "total_games": total_games,
-        "total_free": total_free,
-        "total_paid": total_paid,
-        "total_sources": total_sources,
-        "total_raw_ids": total_raw_ids,
-        "total_scraped": total_scraped,
-        "total_failed": total_failed,
-        "price_chart_data": price_chart_data,
-        "source_chart_data": source_chart_data,
-        "scraping_chart_data": scraping_chart_data,
-        "stacked_options": stacked_options,
+        "active_tab": active_tab,
+        "available_tabs": _AVAILABLE_TABS,
+        **tab_data,
     }
+
     return TemplateResponse(request, "admin/statistics.html", context)

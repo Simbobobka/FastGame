@@ -1,0 +1,267 @@
+{% load i18n %}
+
+{# ── Summary cards row 1 ──────────────────────────────────────────────── #}
+<div class="grid grid-cols-2 gap-4 mb-8 lg:grid-cols-4">
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{% trans "Total Games" %}</p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ total_games }}</p>
+    </div>
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{% trans "Total Platforms" %}</p>
+        <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ platform_coverage|length }}</p>
+    </div>
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{% trans "Top Publishers" %}</p>
+        <p class="text-3xl font-bold text-amber-600 dark:text-amber-400">{{ top_publishers|length }}</p>
+    </div>
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{% trans "Avg Platforms/Game" %}</p>
+        <p class="text-3xl font-bold text-green-600 dark:text-green-400">{{ avg_platforms_per_game }}</p>
+    </div>
+</div>
+
+{# ── Summary cards row 2 ──────────────────────────────────────────────── #}
+<div class="grid grid-cols-2 gap-4 mb-8 lg:grid-cols-3">
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{% trans "Single Platform" %}</p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ single_platform_games }}</p>
+    </div>
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{% trans "Multi-Platform" %}</p>
+        <p class="text-3xl font-bold text-purple-600 dark:text-purple-400">{{ multi_platform_games }}</p>
+    </div>
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{% trans "Years Covered" %}</p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ releases_by_year|length }}</p>
+    </div>
+</div>
+
+{# ── Platform Coverage chart ───────────────────────────────────────────── #}
+<div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-6 mb-8">
+    <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">{% trans "Platform Coverage" %}</h2>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">{% trans "Games per platform with market share." %}</p>
+    {% if platform_coverage %}
+        {% include "unfold/components/chart/bar.html" with data=platform_chart_data height=300 %}
+    {% else %}
+        <p class="text-center text-gray-400 dark:text-gray-500 text-sm py-16">{% trans "No platform data available." %}</p>
+    {% endif %}
+</div>
+
+{# ── Table: Platform details ───────────────────────────────────────────── #}
+<div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg mb-8 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-base-700">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white">{% trans "Platform Details" %}</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{% trans "Detailed platform statistics and market share." %}</p>
+    </div>
+    {% if platform_coverage %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 dark:bg-base-700 text-left">
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs">{% trans "Platform" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Games" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Market Share" %}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-base-700">
+                {% for platform in platform_coverage %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-base-700 transition-colors">
+                    <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">{{ platform.name }}</td>
+                    <td class="px-6 py-3 text-gray-900 dark:text-white font-medium text-right">{{ platform.game_count }}</td>
+                    <td class="px-6 py-3 text-right">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                            {{ platform.percentage }}%
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="px-6 py-8 text-center text-gray-400 dark:text-gray-500 text-sm">{% trans "No platform data available." %}</p>
+    {% endif %}
+</div>
+
+{# ── Pricing by Platform charts ────────────────────────────────────────── #}
+<div class="grid grid-cols-1 gap-6 mb-8 lg:grid-cols-2">
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-6">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">{% trans "Avg Price by Platform" %}</h2>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">{% trans "Paid games only." %}</p>
+        {% if pricing_by_platform %}
+            {% include "unfold/components/chart/bar.html" with data=platform_price_chart_data height=280 %}
+        {% else %}
+            <p class="text-center text-gray-400 dark:text-gray-500 text-sm py-16">{% trans "No pricing data." %}</p>
+        {% endif %}
+    </div>
+
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-6">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">{% trans "Free vs Paid by Platform" %}</h2>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">{% trans "Game count breakdown." %}</p>
+        {% if pricing_by_platform %}
+            {% include "unfold/components/chart/bar.html" with data=free_paid_chart_data height=280 %}
+        {% else %}
+            <p class="text-center text-gray-400 dark:text-gray-500 text-sm py-16">{% trans "No data available." %}</p>
+        {% endif %}
+    </div>
+</div>
+
+{# ── Table: Pricing by platform ───────────────────────────────────────── #}
+<div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg mb-8 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-base-700">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white">{% trans "Pricing by Platform" %}</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{% trans "Price statistics and game distribution per platform." %}</p>
+    </div>
+    {% if pricing_by_platform %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 dark:bg-base-700 text-left">
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs">{% trans "Platform" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Total" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Free" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Paid" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Avg Price" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Min Price" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Max Price" %}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-base-700">
+                {% for row in pricing_by_platform %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-base-700 transition-colors">
+                    <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">{{ row.name }}</td>
+                    <td class="px-6 py-3 text-gray-900 dark:text-white font-medium text-right">{{ row.total_games }}</td>
+                    <td class="px-6 py-3 text-right"><span class="text-green-600 dark:text-green-400">{{ row.free_count }}</span></td>
+                    <td class="px-6 py-3 text-right"><span class="text-blue-600 dark:text-blue-400">{{ row.paid_count }}</span></td>
+                    <td class="px-6 py-3 text-gray-900 dark:text-white text-right">
+                        {% if row.avg_price %}${{ row.avg_price|floatformat:2 }}{% else %}&mdash;{% endif %}
+                    </td>
+                    <td class="px-6 py-3 text-gray-600 dark:text-gray-300 text-right">
+                        {% if row.min_price %}${{ row.min_price|floatformat:2 }}{% else %}&mdash;{% endif %}
+                    </td>
+                    <td class="px-6 py-3 text-gray-600 dark:text-gray-300 text-right">
+                        {% if row.max_price %}${{ row.max_price|floatformat:2 }}{% else %}&mdash;{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="px-6 py-8 text-center text-gray-400 dark:text-gray-500 text-sm">{% trans "No pricing data available." %}</p>
+    {% endif %}
+</div>
+
+{# ── Publisher Analysis charts ─────────────────────────────────────────── #}
+<div class="grid grid-cols-1 gap-6 mb-8 lg:grid-cols-2">
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-6">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">{% trans "Top Publishers (by Games)" %}</h2>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">{% trans "Top 20 publishers by game count." %}</p>
+        {% if top_publishers %}
+            {% include "unfold/components/chart/bar.html" with data=publishers_chart_data height=300 %}
+        {% else %}
+            <p class="text-center text-gray-400 dark:text-gray-500 text-sm py-16">{% trans "No publisher data." %}</p>
+        {% endif %}
+    </div>
+
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-6">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">{% trans "Avg Price by Publisher" %}</h2>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">{% trans "Paid games pricing strategy." %}</p>
+        {% if top_publishers %}
+            {% include "unfold/components/chart/bar.html" with data=publisher_price_chart_data height=300 %}
+        {% else %}
+            <p class="text-center text-gray-400 dark:text-gray-500 text-sm py-16">{% trans "No pricing data." %}</p>
+        {% endif %}
+    </div>
+</div>
+
+{# ── Table: Publisher analysis ─────────────────────────────────────────── #}
+<div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg mb-8 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-base-700">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white">{% trans "Publisher Analysis" %}</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{% trans "Top publishers with game count and pricing metrics (Top 20)." %}</p>
+    </div>
+    {% if top_publishers %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 dark:bg-base-700 text-left">
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs">{% trans "Publisher" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Games" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Free" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Paid" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Avg Price" %}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-base-700">
+                {% for pub in top_publishers %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-base-700 transition-colors">
+                    <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">{{ pub.name }}</td>
+                    <td class="px-6 py-3 text-gray-900 dark:text-white font-medium text-right">{{ pub.game_count }}</td>
+                    <td class="px-6 py-3 text-right"><span class="text-green-600 dark:text-green-400">{{ pub.free_count }}</span></td>
+                    <td class="px-6 py-3 text-right"><span class="text-blue-600 dark:text-blue-400">{{ pub.paid_count }}</span></td>
+                    <td class="px-6 py-3 text-right">
+                        {% if pub.avg_price %}${{ pub.avg_price|floatformat:2 }}{% else %}&mdash;{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="px-6 py-8 text-center text-gray-400 dark:text-gray-500 text-sm">{% trans "No publisher data available." %}</p>
+    {% endif %}
+</div>
+
+{# ── Release Trends charts ─────────────────────────────────────────────── #}
+<div class="grid grid-cols-1 gap-6 mb-8 lg:grid-cols-2">
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-6">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">{% trans "Releases by Year" %}</h2>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">{% trans "Historical release volume." %}</p>
+        {% if releases_by_year %}
+            {% include "unfold/components/chart/bar.html" with data=year_chart_data height=300 %}
+        {% else %}
+            <p class="text-center text-gray-400 dark:text-gray-500 text-sm py-16">{% trans "No release data." %}</p>
+        {% endif %}
+    </div>
+
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-6">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">{% trans "Seasonality (by Month)" %}</h2>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">{% trans "Release patterns across calendar months." %}</p>
+        {% if releases_by_month %}
+            {% include "unfold/components/chart/bar.html" with data=month_chart_data height=300 %}
+        {% else %}
+            <p class="text-center text-gray-400 dark:text-gray-500 text-sm py-16">{% trans "No seasonal data." %}</p>
+        {% endif %}
+    </div>
+</div>
+
+{# ── Table: Release trends by year ────────────────────────────────────── #}
+<div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg mb-8 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-base-700">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white">{% trans "Release Trends by Year" %}</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{% trans "Total game releases per year." %}</p>
+    </div>
+    {% if releases_by_year %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 dark:bg-base-700 text-left">
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs">{% trans "Year" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Releases" %}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-base-700">
+                {% for year_row in releases_by_year %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-base-700 transition-colors">
+                    <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">{{ year_row.year }}</td>
+                    <td class="px-6 py-3 text-gray-900 dark:text-white font-medium text-right">{{ year_row.count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="px-6 py-8 text-center text-gray-400 dark:text-gray-500 text-sm">{% trans "No release data available." %}</p>
+    {% endif %}
+</div>

@@ -1,0 +1,207 @@
+{% load i18n %}
+
+{# ── Summary cards row 1 ──────────────────────────────────────────────── #}
+<div class="grid grid-cols-2 gap-4 mb-8 lg:grid-cols-4">
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{% trans "Total Games" %}</p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ total_games }}</p>
+    </div>
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{% trans "Free Games" %}</p>
+        <p class="text-3xl font-bold text-green-600 dark:text-green-400">{{ total_free }}</p>
+    </div>
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{% trans "Paid Games" %}</p>
+        <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ total_paid }}</p>
+    </div>
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{% trans "Active Sources" %}</p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ total_sources }}</p>
+    </div>
+</div>
+
+{# ── Summary cards row 2 ──────────────────────────────────────────────── #}
+<div class="grid grid-cols-2 gap-4 mb-8 lg:grid-cols-3">
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{% trans "Total Raw IDs" %}</p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ total_raw_ids }}</p>
+    </div>
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{% trans "Successfully Scraped" %}</p>
+        <p class="text-3xl font-bold text-green-600 dark:text-green-400">{{ total_scraped }}</p>
+    </div>
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{% trans "Failed" %}</p>
+        <p class="text-3xl font-bold text-red-600 dark:text-red-400">{{ total_failed }}</p>
+    </div>
+</div>
+
+{# ── Charts row ───────────────────────────────────────────────────────── #}
+<div class="grid grid-cols-1 gap-6 mb-8 lg:grid-cols-2">
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-6">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">{% trans "Avg Price by Release Year" %}</h2>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">{% trans "Paid games only." %}</p>
+        {% if price_by_year %}
+            {% include "unfold/components/chart/bar.html" with data=price_chart_data height=280 %}
+        {% else %}
+            <p class="text-center text-gray-400 dark:text-gray-500 text-sm py-16">{% trans "No data available." %}</p>
+        {% endif %}
+    </div>
+
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-6">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">{% trans "Games by Source" %}</h2>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">{% trans "Total, free, and paid per scraper." %}</p>
+        {% if stats_by_source %}
+            {% include "unfold/components/chart/bar.html" with data=source_chart_data height=280 %}
+        {% else %}
+            <p class="text-center text-gray-400 dark:text-gray-500 text-sm py-16">{% trans "No data available." %}</p>
+        {% endif %}
+    </div>
+</div>
+
+{# ── Scraping progress stacked bar ────────────────────────────────────── #}
+<div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-6 mb-8">
+    <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">{% trans "Scraping Progress by Source" %}</h2>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">{% trans "Scraped vs failed vs unprocessed raw IDs." %}</p>
+    {% if raw_ids_by_source %}
+        {% include "unfold/components/chart/bar.html" with data=scraping_chart_data options=stacked_options height=260 %}
+    {% else %}
+        <p class="text-center text-gray-400 dark:text-gray-500 text-sm py-16">{% trans "No data available." %}</p>
+    {% endif %}
+</div>
+
+{# ── Table: Average price by release year ─────────────────────────────── #}
+<div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg mb-8 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-base-700">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white">{% trans "Average Price by Release Year" %}</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{% trans "Paid games only, grouped by release year." %}</p>
+    </div>
+    {% if price_by_year %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 dark:bg-base-700 text-left">
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs">{% trans "Year" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Games" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Avg Price" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Min Price" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Max Price" %}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-base-700">
+                {% for row in price_by_year %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-base-700 transition-colors">
+                    <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">{{ row.year }}</td>
+                    <td class="px-6 py-3 text-gray-600 dark:text-gray-300 text-right">{{ row.count }}</td>
+                    <td class="px-6 py-3 text-gray-900 dark:text-white font-medium text-right">${{ row.avg_price|floatformat:2 }}</td>
+                    <td class="px-6 py-3 text-gray-600 dark:text-gray-300 text-right">${{ row.min_price|floatformat:2 }}</td>
+                    <td class="px-6 py-3 text-gray-600 dark:text-gray-300 text-right">${{ row.max_price|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="px-6 py-8 text-center text-gray-400 dark:text-gray-500 text-sm">{% trans "No data available." %}</p>
+    {% endif %}
+</div>
+
+{# ── Table: Game details by source ────────────────────────────────────── #}
+<div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg mb-8 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-base-700">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white">{% trans "Game Details by Source" %}</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{% trans "Scraped game details broken down per source." %}</p>
+    </div>
+    {% if stats_by_source %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 dark:bg-base-700 text-left">
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs">{% trans "Source" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Total" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Free" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Paid" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Avg Price" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Min Price" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Max Price" %}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-base-700">
+                {% for row in stats_by_source %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-base-700 transition-colors">
+                    <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">
+                        {{ row.source__name }}
+                        <span class="ml-2 text-xs text-gray-400 dark:text-gray-500 font-mono">{{ row.source__code }}</span>
+                    </td>
+                    <td class="px-6 py-3 text-gray-900 dark:text-white font-medium text-right">{{ row.total }}</td>
+                    <td class="px-6 py-3 text-right"><span class="text-green-600 dark:text-green-400">{{ row.free_count }}</span></td>
+                    <td class="px-6 py-3 text-right"><span class="text-blue-600 dark:text-blue-400">{{ row.paid_count }}</span></td>
+                    <td class="px-6 py-3 text-gray-900 dark:text-white text-right">
+                        {% if row.avg_price %}${{ row.avg_price|floatformat:2 }}{% else %}&mdash;{% endif %}
+                    </td>
+                    <td class="px-6 py-3 text-gray-600 dark:text-gray-300 text-right">
+                        {% if row.min_price %}${{ row.min_price|floatformat:2 }}{% else %}&mdash;{% endif %}
+                    </td>
+                    <td class="px-6 py-3 text-gray-600 dark:text-gray-300 text-right">
+                        {% if row.max_price %}${{ row.max_price|floatformat:2 }}{% else %}&mdash;{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="px-6 py-8 text-center text-gray-400 dark:text-gray-500 text-sm">{% trans "No data available." %}</p>
+    {% endif %}
+</div>
+
+{# ── Table: Scraping progress by source ───────────────────────────────── #}
+<div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg mb-8 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-base-700">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white">{% trans "Scraping Progress by Source" %}</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{% trans "Status breakdown of raw game IDs per source." %}</p>
+    </div>
+    {% if raw_ids_by_source %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 dark:bg-base-700 text-left">
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs">{% trans "Source" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Total" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Scraped" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Failed" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "In Progress" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Retry Waiting" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Unprocessed" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Success Rate" %}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-base-700">
+                {% for row in raw_ids_by_source %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-base-700 transition-colors">
+                    <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">{{ row.source__name }}</td>
+                    <td class="px-6 py-3 text-gray-900 dark:text-white font-medium text-right">{{ row.total }}</td>
+                    <td class="px-6 py-3 text-right"><span class="text-green-600 dark:text-green-400 font-medium">{{ row.scraped }}</span></td>
+                    <td class="px-6 py-3 text-right"><span class="text-red-600 dark:text-red-400">{{ row.failed }}</span></td>
+                    <td class="px-6 py-3 text-right"><span class="text-yellow-600 dark:text-yellow-400">{{ row.in_progress }}</span></td>
+                    <td class="px-6 py-3 text-gray-600 dark:text-gray-300 text-right">{{ row.retry_waiting }}</td>
+                    <td class="px-6 py-3 text-gray-600 dark:text-gray-300 text-right">{{ row.unprocessed }}</td>
+                    <td class="px-6 py-3 text-right">
+                        {% if row.total %}
+                            {% widthratio row.scraped row.total 100 as pct %}
+                            <span class="{% if pct >= 80 %}text-green-600 dark:text-green-400{% elif pct >= 50 %}text-yellow-600 dark:text-yellow-400{% else %}text-red-600 dark:text-red-400{% endif %} font-medium">
+                                {{ pct }}%
+                            </span>
+                        {% else %}
+                            &mdash;
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="px-6 py-8 text-center text-gray-400 dark:text-gray-500 text-sm">{% trans "No data available." %}</p>
+    {% endif %}
+</div>
