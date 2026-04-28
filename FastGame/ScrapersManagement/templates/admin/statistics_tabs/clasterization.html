@@ -1,10 +1,164 @@
 {% load i18n %}
 
-<div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-8 text-center">
-    <svg class="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" fill="currentColor" viewBox="0 0 20 20">
-        <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM15 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2h-2zM5 13a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM15 13a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2h-2z"></path>
-    </svg>
-    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{% trans "Clasterization" %}</h3>
-    <p class="text-gray-500 dark:text-gray-400 mb-4">{% trans "Game clustering and categorization coming soon." %}</p>
-    <p class="text-sm text-gray-400 dark:text-gray-500">{% trans "Advanced clustering algorithms, game grouping by similarity, and pattern recognition analysis." %}</p>
+{% if clustering_error %}
+<div class="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg">
+    <span class="font-semibold">{% trans "Clustering error:" %}</span> {{ clustering_error }}
 </div>
+{% endif %}
+
+<div class="grid grid-cols-2 gap-4 mb-8 lg:grid-cols-4">
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{% trans "Eras Detected" %}</p>
+        <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ n_clusters_found }}</p>
+    </div>
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{% trans "Games Analysed" %}</p>
+        <p class="text-3xl font-bold text-green-600 dark:text-green-400">{{ total_games_analysed }}</p>
+    </div>
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{% trans "No Date (skipped)" %}</p>
+        <p class="text-3xl font-bold text-amber-600 dark:text-amber-400">{{ total_games_skipped }}</p>
+    </div>
+    <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{% trans "Year Span" %}</p>
+        <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">
+            {% if year_min and year_max %}{{ year_min }}–{{ year_max }}{% else %}—{% endif %}
+        </p>
+    </div>
+</div>
+
+<div class="mb-8 flex items-center gap-3">
+    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/>
+        </svg>
+        {{ algorithm }}
+    </span>
+</div>
+
+{% if not clusters %}
+<div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg p-12 text-center">
+    <svg class="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" fill="currentColor" viewBox="0 0 20 20">
+        <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM15 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2h-2zM5 13a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM15 13a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2h-2z"/>
+    </svg>
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{% trans "No clusters found" %}</h3>
+    <p class="text-gray-500 dark:text-gray-400 text-sm">{% trans "Not enough games with valid release dates to form clusters." %}</p>
+</div>
+{% else %}
+
+<div class="mb-8">
+    <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-1">{% trans "Detected Release Eras" %}</h2>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mb-5">{% trans "Each era represents a dense period of releases separated by natural gaps in publishing activity." %}</p>
+
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+        {% for cluster in clusters %}
+        <div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-xl p-5 flex flex-col gap-3 hover:shadow-md transition-shadow">
+
+            <div class="flex items-start justify-between gap-2">
+                <div>
+                    <span class="inline-block text-xs font-semibold tracking-wide text-gray-400 dark:text-gray-500 uppercase mb-1">
+                        {% trans "Wave" %} #{{ cluster.index|add:1 }}
+                    </span>
+                    <h3 class="text-sm font-bold text-gray-900 dark:text-white leading-tight">{{ cluster.label }}</h3>
+                </div>
+                <span class="shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
+                    {{ cluster.game_count }} {% trans "games" %}
+                </span>
+            </div>
+
+            <div class="flex items-center gap-4 text-sm">
+                <div>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">{% trans "Period" %}</p>
+                    <p class="font-semibold text-gray-900 dark:text-white">
+                        {% if cluster.year_start == cluster.year_end %}
+                            {{ cluster.year_start }}
+                        {% else %}
+                            {{ cluster.year_start }} – {{ cluster.year_end }}
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">{% trans "Avg Year" %}</p>
+                    <p class="font-semibold text-gray-900 dark:text-white">{{ cluster.avg_year }}</p>
+                </div>
+            </div>
+
+            {% if total_games_analysed %}
+            <div>
+                <div class="flex justify-between text-xs text-gray-400 dark:text-gray-500 mb-1">
+                    <span>{% trans "Share of analysed games" %}</span>
+                    {% widthratio cluster.game_count total_games_analysed 100 as share_pct %}
+                    <span class="font-medium text-gray-700 dark:text-gray-300">{{ share_pct }}%</span>
+                </div>
+                <div class="w-full bg-gray-100 dark:bg-base-700 rounded-full h-1.5">
+                    <div class="bg-indigo-500 h-1.5 rounded-full" style="width: {{ share_pct }}%"></div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if cluster.example_games %}
+            <div>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mb-1.5">{% trans "Example titles" %}</p>
+                <ul class="flex flex-wrap gap-1.5">
+                    {% for game in cluster.example_games %}
+                    <li class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 dark:bg-base-700 text-gray-700 dark:text-gray-300 truncate max-w-full">
+                        {{ game|truncatechars:40 }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="bg-white dark:bg-base-800 border border-gray-200 dark:border-base-700 rounded-lg mb-8 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-base-700">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white">{% trans "Era Summary Table" %}</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{% trans "All detected release eras with key metrics." %}</p>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 dark:bg-base-700 text-left">
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs">#</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs">{% trans "Era Label" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-center">{% trans "From" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-center">{% trans "To" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Games" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Avg Year" %}</th>
+                    <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide text-xs text-right">{% trans "Share" %}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-base-700">
+                {% for cluster in clusters %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-base-700 transition-colors">
+                    <td class="px-6 py-3 text-gray-400 dark:text-gray-500 text-xs font-mono">{{ cluster.index|add:1 }}</td>
+                    <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">{{ cluster.label }}</td>
+                    <td class="px-6 py-3 text-gray-600 dark:text-gray-300 text-center">{{ cluster.year_start }}</td>
+                    <td class="px-6 py-3 text-gray-600 dark:text-gray-300 text-center">{{ cluster.year_end }}</td>
+                    <td class="px-6 py-3 text-gray-900 dark:text-white font-semibold text-right">{{ cluster.game_count }}</td>
+                    <td class="px-6 py-3 text-gray-600 dark:text-gray-300 text-right">{{ cluster.avg_year }}</td>
+                    <td class="px-6 py-3 text-right">
+                        {% if total_games_analysed %}
+                            {% widthratio cluster.game_count total_games_analysed 100 as tpct %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                                {% if tpct >= 30 %}bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300
+                                {% elif tpct >= 10 %}bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300
+                                {% else %}bg-gray-100 dark:bg-base-700 text-gray-600 dark:text-gray-400{% endif %}">
+                                {{ tpct }}%
+                            </span>
+                        {% else %}
+                            &mdash;
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endif %}
