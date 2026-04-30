@@ -67,6 +67,7 @@ UNFOLD = {
                         "title": "Statistics",
                         "icon": "bar_chart",
                         "link": reverse_lazy("admin:statistics"),
+                        "description": "General Statistics, BI & Clasterization",
                     },
                     {
                         "title": "Game Details",
